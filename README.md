@@ -1,3 +1,4 @@
+#You all are gay
 # Hospital Information System (HIS)
 
 Proyecto final. Monolito modular: un solo repositorio, una carpeta por módulo.
