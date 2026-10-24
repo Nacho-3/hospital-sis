@@ -9,6 +9,7 @@ app.use(express.json());
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
 
 // Cada responsable registra aca las rutas de su modulo, por ejemplo:
+// app.use('/api/identidad', require('./modules/identidad/rutas'));
 // app.use('/api/admision', require('./modules/admision/rutas'));
 // app.use('/api/atencion', require('./modules/atencion/rutas'));
 // app.use('/api/camas', require('./modules/camas/rutas'));

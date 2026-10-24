@@ -7,6 +7,7 @@
   "scripts": {
     "dev": "node --watch src/server.js",
     "start": "node src/server.js",
+    "db:schema": "node src/shared/db/applySchema.js",
     "test": "node --test src/modules"
   },
   "engines": {

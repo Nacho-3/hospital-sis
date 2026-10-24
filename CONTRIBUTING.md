@@ -3,8 +3,8 @@
 ## Reglas de oro
 
 1. **Nadie commitea directo a `main`.** Todo entra por Pull Request.
-2. **Cada uno edita solo la carpeta de su módulo** (`backend/src/modules/<modulo>` y `frontend/src/modules/<modulo>`).
-3. Si hay que tocar `shared/` o el módulo de otro, avisar en el grupo antes.
+2. **Cada uno edita solo su módulo:** `backend/src/modules/<modulo>`, `frontend/src/modules/<modulo>` y su archivo en `backend/src/shared/db/schema/`.
+3. Si hay que tocar otro archivo de `shared/` (eventos, pool, `applySchema.js`) o el módulo de otro, avisar en el grupo antes. La tabla `pacientes` la escribe Admisión; cambiar sus columnas también se avisa.
 4. Ramas cortas: una por historia de usuario, que se integra en uno o dos días.
 
 ## Nombres de rama
