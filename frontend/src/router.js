@@ -9,7 +9,7 @@ const routes = [
   { path: '/identidad', component: Placeholder },
   { path: '/admision', component: Placeholder },
   { path: '/atencion', component: Placeholder },
-  { path: '/camas', component: Placeholder },
+  { path: '/camas', component: () => import('./modules/camas/views/CamasView.vue') },
   { path: '/facturacion', component: Placeholder },
 ];
 
