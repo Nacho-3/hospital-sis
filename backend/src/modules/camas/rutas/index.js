@@ -31,6 +31,9 @@ router.get('/pacientes-sin-cama', h(async (req, res) => {
   res.json(await camas.pacientesSinCama());
 }));
 
+// Inventario de insumos por piso (HU 3.1). Va antes de /:id.
+router.use('/inventario', require('./inventario'));
+
 // Server-Sent Events para refrescar el mapa en tiempo real.
 router.get('/en-vivo', enVivo);
 
