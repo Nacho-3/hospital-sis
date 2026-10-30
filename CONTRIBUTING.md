@@ -7,6 +7,12 @@
 3. Si hay que tocar otro archivo de `shared/` (eventos, pool, `applySchema.js`) o el módulo de otro, avisar en el grupo antes. La tabla `pacientes` la escribe Admisión; cambiar sus columnas también se avisa.
 4. Ramas cortas: una por historia de usuario, que se integra en uno o dos días.
 
+## Estilos del frontend
+
+Los colores, la tipografia y las piezas comunes viven solo en `frontend/src/shared/estilos.css`. Se importa una vez en `frontend/src/main.js`.
+
+En un modulo no se declaran colores ni un boton con otro aspecto. Se usan las clases de ese archivo (`.btn`, `.btn--primario`, `.btn--peligro`, `.tabla`, `.tarjeta`, `.aviso`, `.tabs`, `.pagina`). Si falta una pieza, se agrega ahi y se avisa al grupo, igual que con un evento compartido.
+
 ## Nombres de rama
 
 ```

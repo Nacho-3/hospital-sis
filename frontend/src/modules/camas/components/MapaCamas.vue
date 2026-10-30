@@ -159,20 +159,20 @@ const agrupado = computed(() => {
   gap: 6px;
   padding: 5px 10px;
   border-radius: 999px;
-  border: 1px solid var(--c-borde);
-  background: #fff;
-  color: var(--c-texto);
+  border: 1px solid var(--color-borde);
+  background: var(--color-superficie);
+  color: var(--color-texto);
   cursor: pointer;
 }
 .mapa__chip--off { opacity: 0.45; }
 .mapa__punto { width: 10px; height: 10px; border-radius: 50%; }
-.mapa__error { color: var(--c-ocupada); }
+.mapa__error { color: var(--color-peligro); }
 .mapa__cuerpo { display: flex; gap: 20px; align-items: flex-start; }
 .mapa__pisos { flex: 1; min-width: 0; }
 .mapa__piso { margin-bottom: 24px; }
-.mapa__piso-titulo { font-size: 15px; text-transform: uppercase; letter-spacing: 0.04em; margin: 0 0 10px; color: var(--c-tenue); }
+.mapa__piso-titulo { font-size: 15px; text-transform: uppercase; letter-spacing: 0.04em; margin: 0 0 10px; color: var(--color-tenue); }
 .mapa__habitaciones { display: flex; flex-wrap: wrap; gap: 12px; }
-.mapa__habitacion { border: 1px solid var(--c-borde); border-radius: 8px; padding: 10px; background: var(--c-suave); }
+.mapa__habitacion { border: 1px solid var(--color-borde); border-radius: 8px; padding: 10px; background: var(--color-suave); }
 .mapa__hab-titulo { font-weight: 600; font-size: 14px; margin-bottom: 8px; display: flex; gap: 8px; align-items: baseline; }
 .mapa__camas { display: flex; flex-wrap: wrap; gap: 8px; }
 .mapa__cama {
@@ -182,20 +182,20 @@ const agrupado = computed(() => {
   min-height: 72px;
   padding: 8px 10px;
   border-radius: 6px;
-  border: 1px solid var(--c-borde);
+  border: 1px solid var(--color-borde);
   border-left: 5px solid var(--estado);
-  background: #fff;
-  color: var(--c-texto);
+  background: var(--color-superficie);
+  color: var(--color-texto);
   cursor: pointer;
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
 .mapa__cama:hover { box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08); }
-.mapa__cama--sel { outline: 2px solid var(--c-texto); outline-offset: 1px; }
+.mapa__cama--sel { outline: 2px solid var(--color-texto); outline-offset: 1px; }
 .mapa__cama-codigo { font-weight: 700; }
 .mapa__cama-estado { font-size: 12px; font-weight: 600; color: var(--estado); }
-.mapa__cama-paciente { font-size: 12px; color: var(--c-tenue); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mapa__cama-paciente { font-size: 12px; color: var(--color-tenue); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 @media (max-width: 800px) {
   .mapa__cuerpo { flex-direction: column-reverse; }
   .mapa__cama { width: calc(50vw - 48px); }

@@ -198,10 +198,10 @@ const fecha = (v) =>
   flex-shrink: 0;
   position: sticky;
   top: 16px;
-  border: 1px solid var(--c-borde);
+  border: 1px solid var(--color-borde);
   border-radius: 8px;
   padding: 16px;
-  background: #fff;
+  background: var(--color-superficie);
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -214,16 +214,16 @@ const fecha = (v) =>
   border-radius: 999px;
   font-size: 13px;
   font-weight: 600;
-  color: #fff;
+  color: var(--color-sobre);
   background: var(--estado);
 }
 .panel__dato { margin: 0; font-size: 14px; }
 .panel__acciones { display: flex; flex-direction: column; gap: 8px; }
 .panel__acciones p { margin: 0; }
-.panel__campo { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--c-tenue); }
+.panel__campo { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--color-tenue); }
 .panel__fila { display: flex; gap: 8px; }
 .panel__fila .btn { flex: 1; }
-.panel__historial { font-size: 14px; border-top: 1px solid var(--c-borde); padding-top: 10px; }
+.panel__historial { font-size: 14px; border-top: 1px solid var(--color-borde); padding-top: 10px; }
 .panel__historial summary { cursor: pointer; font-weight: 600; }
 .panel__historial ul { list-style: none; padding: 0; margin: 8px 0 0; display: flex; flex-direction: column; gap: 8px; }
 @media (max-width: 800px) {
