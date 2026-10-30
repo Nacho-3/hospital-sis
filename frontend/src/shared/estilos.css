@@ -1,0 +1,360 @@
+/*
+  Unico archivo de estilos del sistema.
+  Colores, tipografia, espaciado y piezas comunes viven aca.
+  main.js lo importa una sola vez. Los modulos no declaran otra paleta
+  ni otro boton: usan estas variables y estas clases.
+  Si falta una pieza, se agrega en este archivo y se avisa al grupo.
+
+  Clases: .pagina .barra .btn .campo .tarjeta .tabla .aviso .badge .tabs .tenue
+*/
+
+:root {
+  --color-sobre: #ffffff;
+  --color-fondo: #eef2f6;
+  --color-superficie: #ffffff;
+  --color-texto: #1d2127;
+  --color-tenue: #5d636c;
+  --color-borde: #d5dbe3;
+  --color-suave: #f4f6f8;
+
+  --color-primario: #2f63b8;
+  --color-primario-hover: #244f94;
+  --color-peligro: #b3362c;
+  --color-peligro-fondo: #fbeeed;
+  --color-exito: #2e7d4f;
+  --color-alerta: #c98a12;
+  --color-alerta-fondo: #fdf6e7;
+  --color-neutro: #6b6f76;
+
+  /* Estados de cama. Camas los lee por nombre; no repetir el hex en el modulo. */
+  --estado-disponible: var(--color-exito);
+  --estado-reservada: var(--color-primario);
+  --estado-ocupada: var(--color-peligro);
+  --estado-limpieza: var(--color-alerta);
+  --estado-mantenimiento: var(--color-neutro);
+
+  /* Triaje de guardia, para Admision. */
+  --triaje-rojo: #b3362c;
+  --triaje-naranja: #d4651a;
+  --triaje-amarillo: #c98a12;
+  --triaje-verde: #2e7d4f;
+  --triaje-azul: #2f63b8;
+
+  --espacio-xs: 4px;
+  --espacio-sm: 8px;
+  --espacio-md: 16px;
+  --espacio-lg: 24px;
+  --espacio-xl: 32px;
+
+  --radio-sm: 6px;
+  --radio: 8px;
+  --radio-pill: 999px;
+  --sombra: 0 4px 14px rgba(29, 33, 39, 0.12);
+  --fuente: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --ancho-pagina: 1200px;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--color-fondo);
+  color: var(--color-texto);
+  font-family: var(--fuente);
+  font-size: 16px;
+  line-height: 1.45;
+}
+
+h1,
+h2,
+p {
+  margin: 0;
+}
+
+/* Marco de la aplicacion */
+
+.barra {
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-lg);
+  padding: 12px var(--espacio-lg);
+  background: var(--color-superficie);
+  border-bottom: 1px solid var(--color-borde);
+}
+
+.barra__marca {
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.barra__nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espacio-sm);
+}
+
+.barra__link {
+  color: var(--color-tenue);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.9rem;
+  padding: 6px 12px;
+  border-radius: var(--radio);
+}
+
+.barra__link:hover {
+  background: var(--color-suave);
+  color: var(--color-texto);
+}
+
+.barra__link--activo {
+  background: var(--color-primario);
+  color: var(--color-sobre);
+}
+
+.barra__link--activo:hover {
+  background: var(--color-primario-hover);
+  color: var(--color-sobre);
+}
+
+.contenido {
+  padding: var(--espacio-lg) var(--espacio-md) var(--espacio-xl);
+}
+
+.pagina {
+  max-width: var(--ancho-pagina);
+  margin: 0 auto;
+}
+
+.tenue {
+  color: var(--color-tenue);
+  font-size: 0.85rem;
+}
+
+/* Controles */
+
+.btn {
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  padding: 7px 12px;
+  border-radius: var(--radio-sm);
+  border: 1px solid var(--color-borde);
+  background: var(--color-superficie);
+  color: var(--color-texto);
+  cursor: pointer;
+}
+
+.btn:hover:not(:disabled) {
+  background: var(--color-suave);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.btn--primario {
+  background: var(--color-primario);
+  border-color: var(--color-primario);
+  color: var(--color-sobre);
+}
+
+.btn--primario:hover:not(:disabled) {
+  background: var(--color-primario-hover);
+  border-color: var(--color-primario-hover);
+}
+
+.btn--peligro {
+  color: var(--color-peligro);
+  border-color: var(--color-peligro);
+  background: var(--color-superficie);
+}
+
+.btn--peligro:hover:not(:disabled) {
+  background: var(--color-peligro-fondo);
+}
+
+input:not([type="checkbox"]):not([type="radio"]),
+select,
+textarea {
+  font: inherit;
+  font-size: 0.875rem;
+  padding: 6px 8px;
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-sm);
+  background: var(--color-superficie);
+  color: var(--color-texto);
+}
+
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-xs);
+  font-size: 0.85rem;
+  color: var(--color-tenue);
+}
+
+/* Contenedores */
+
+.tarjeta {
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio);
+  padding: var(--espacio-md);
+}
+
+.tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+  background: var(--color-superficie);
+}
+
+.tabla th {
+  text-align: left;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-tenue);
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--color-borde);
+}
+
+.tabla td {
+  padding: 8px;
+  border-bottom: 1px solid var(--color-borde);
+  vertical-align: middle;
+}
+
+.tabla .num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.badge {
+  display: inline-block;
+  min-width: 18px;
+  padding: 0 6px;
+  border-radius: var(--radio-pill);
+  background: var(--color-peligro);
+  color: var(--color-sobre);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+}
+
+.badge--alerta {
+  background: var(--color-alerta);
+}
+
+.badge--exito {
+  background: var(--color-exito);
+}
+
+/* Pestanas */
+
+.tabs {
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-xs);
+  border-bottom: 1px solid var(--color-borde);
+  margin-bottom: 20px;
+}
+
+.tab {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  padding: 10px 14px;
+  font: inherit;
+  font-weight: 600;
+  color: var(--color-tenue);
+  cursor: pointer;
+}
+
+.tab--activa {
+  color: var(--color-texto);
+  border-bottom-color: var(--color-primario);
+}
+
+.tab .badge {
+  margin-left: var(--espacio-xs);
+}
+
+/* Avisos flotantes */
+
+.avisos {
+  position: fixed;
+  right: var(--espacio-md);
+  bottom: var(--espacio-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-sm);
+  z-index: 20;
+}
+
+.aviso {
+  padding: 10px 14px;
+  border-radius: var(--radio-sm);
+  color: var(--color-sobre);
+  background: var(--color-exito);
+  box-shadow: var(--sombra);
+  max-width: 360px;
+  font-size: 0.875rem;
+}
+
+.aviso--error {
+  background: var(--color-peligro);
+}
+
+.aviso--alerta {
+  background: var(--color-alerta);
+}
+
+.aviso-enter-from,
+.aviso-leave-to {
+  opacity: 0;
+  transform: translateY(8px);
+}
+
+.aviso-enter-active,
+.aviso-leave-active {
+  transition: all 0.2s ease;
+}
+
+/* Conexion en vivo */
+
+.en-vivo {
+  margin-left: auto;
+  font-size: 0.85rem;
+  color: var(--color-tenue);
+}
+
+.en-vivo::before {
+  content: "";
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-neutro);
+  margin-right: 6px;
+}
+
+.en-vivo--on::before {
+  background: var(--color-exito);
+}
+
+@media (max-width: 800px) {
+  .tabla {
+    display: block;
+    overflow-x: auto;
+  }
+}

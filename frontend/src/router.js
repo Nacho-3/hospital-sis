@@ -1,11 +1,13 @@
+import { h } from 'vue';
 import { createRouter, createWebHistory } from 'vue-router';
 
 // Cada responsable agrega aca las rutas de su modulo apuntando a sus vistas.
 // Ejemplo: { path: '/admision', component: () => import('./modules/admision/views/AgendaView.vue') }
-const Placeholder = { template: '<p>Pendiente de implementar.</p>' };
+// El build de Vue que usa Vite no compila `template` definido en un objeto.
+const Placeholder = { render: () => h('p', 'Pendiente de implementar.') };
 
 const routes = [
-  { path: '/', component: { template: '<p>Hospital Information System</p>' } },
+  { path: '/', component: { render: () => h('p', 'Hospital Information System') } },
   { path: '/identidad', component: Placeholder },
   { path: '/admision', component: Placeholder },
   { path: '/atencion', component: Placeholder },

@@ -20,11 +20,11 @@ async function pedir(ruta, { method = 'GET', body } = {}) {
 const post = (ruta, body) => pedir(ruta, { method: 'POST', body: body || {} });
 
 export const ESTADOS = {
-  disponible: { etiqueta: 'Disponible', color: 'var(--c-disponible)' },
-  reservada: { etiqueta: 'Reservada', color: 'var(--c-reservada)' },
-  ocupada: { etiqueta: 'Ocupada', color: 'var(--c-ocupada)' },
-  en_limpieza: { etiqueta: 'En limpieza', color: 'var(--c-limpieza)' },
-  en_mantenimiento: { etiqueta: 'En mantenimiento', color: 'var(--c-mantenimiento)' },
+  disponible: { etiqueta: 'Disponible', color: 'var(--estado-disponible)' },
+  reservada: { etiqueta: 'Reservada', color: 'var(--estado-reservada)' },
+  ocupada: { etiqueta: 'Ocupada', color: 'var(--estado-ocupada)' },
+  en_limpieza: { etiqueta: 'En limpieza', color: 'var(--estado-limpieza)' },
+  en_mantenimiento: { etiqueta: 'En mantenimiento', color: 'var(--estado-mantenimiento)' },
 };
 
 export const TIPOS_HABITACION = {
