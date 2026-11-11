@@ -1,254 +1,195 @@
 <template>
-  <div class="pagina">
-    <!-- Encabezado y buscador de paciente -->
-    <div class="tarjeta" style="margin-bottom: var(--espacio-md); display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: var(--espacio-md);">
+  <section class="pagina">
+    <header class="tarjeta fac__cabecera">
       <div>
         <h1>Facturación y Administración</h1>
-        <p class="tenue">Consulta de cobertura vigente, cuenta activa y desglose de cargos por paciente.</p>
+        <p class="tenue">Cobertura vigente, cuenta activa y desglose de cargos por paciente.</p>
       </div>
-
-      <form @submit.prevent="cargarDatosPaciente" style="display: flex; align-items: flex-end; gap: var(--espacio-sm);">
+      <form class="fac__buscador" @submit.prevent="consultar">
         <label class="campo">
-          <span>ID de Paciente</span>
-          <input v-model.number="pacienteId" type="number" min="1" required style="width: 120px;" />
+          <span>ID de paciente</span>
+          <input v-model.number="idBuscado" class="fac__id" type="number" min="1" step="1" required />
         </label>
-        <button type="submit" class="btn btn--primario" :disabled="cargando">
-          {{ cargando ? 'Consultando...' : 'Consultar Cuenta' }}
+        <button class="btn btn--primario" :disabled="cargando">
+          {{ cargando ? 'Consultando…' : 'Consultar cuenta' }}
         </button>
       </form>
-    </div>
+    </header>
 
-    <!-- Tarjetas de resumen: Cobertura y Totales -->
-    <div v-if="cuenta && cobertura" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: var(--espacio-md); margin-bottom: var(--espacio-md);">
-      <div class="tarjeta">
-        <p class="tenue">Cobertura Vigente</p>
-        <div style="display: flex; align-items: center; gap: var(--espacio-sm); margin-top: var(--espacio-xs);">
-          <h2>{{ cobertura.nombre }}</h2>
-          <span class="badge" :class="claseBadgeCobertura(cobertura.tipo)">
-            {{ cobertura.tipo.toUpperCase() }}
-          </span>
+    <p v-if="error" class="fac__error" role="alert">{{ error }}</p>
+    <p v-else-if="!cuenta" class="tenue">Ingresá el ID de un paciente para ver su cobertura y su cuenta.</p>
+
+    <template v-if="cuenta">
+      <div class="fac__resumen">
+        <PanelCobertura
+          :cobertura="cobertura"
+          :coberturas="coberturas"
+          :ocupado="guardando"
+          @cambiar="cambiarCobertura"
+        />
+
+        <div class="tarjeta">
+          <p class="tenue">Cuenta activa</p>
+          <h2 class="fac__dato">{{ cuenta.cuentaId ? `Cuenta #${cuenta.cuentaId}` : 'Sin cuenta abierta' }}</h2>
+          <p class="tenue">
+            {{ cuenta.paciente }} (paciente #{{ cuenta.pacienteId }}) · {{ cuenta.cargos.length }} cargo(s)
+          </p>
+          <p v-if="!cuenta.cuentaId" class="tenue">La cuenta se abre sola con el primer cargo.</p>
         </div>
-        <p class="tenue" style="margin-top: var(--espacio-xs);">
-          <span v-if="cobertura.copago_fijo">Copago fijo por prestación: <strong>${{ formatearMonto(cobertura.copago_fijo) }}</strong></span>
-          <span v-else>Sin copago fijo asignado</span>
-        </p>
-      </div>
 
-      <div class="tarjeta">
-        <p class="tenue">Cuenta Activa</p>
-        <h2 style="margin-top: var(--espacio-xs);">Cuenta #{{ cuenta.cuentaId }}</h2>
-        <p class="tenue" style="margin-top: var(--espacio-xs);">
-          Paciente #{{ cuenta.pacienteId }} · {{ cuenta.cargos.length }} cargo(s) registrado(s)
-        </p>
-      </div>
-
-      <div class="tarjeta">
-        <p class="tenue">Total Acumulado en Cuenta</p>
-        <h2 style="margin-top: var(--espacio-xs);">${{ formatearMonto(cuenta.totalAcumulado) }}</h2>
-        <p class="tenue" style="margin-top: var(--espacio-xs);">
-          Paciente: ${{ formatearMonto(totalPorDestinatario('paciente')) }} · Cobertura/Estado: ${{ formatearMonto(totalCobertura) }}
-        </p>
-      </div>
-    </div>
-
-    <!-- Tabla de cargos con pestañas de filtro -->
-    <div v-if="cuenta" class="tarjeta">
-      <div class="tabs">
-        <button
-          type="button"
-          class="tab"
-          :class="{ 'tab--activa': filtroDestinatario === 'todos' }"
-          @click="filtroDestinatario = 'todos'"
-        >
-          Todos
-          <span class="badge">{{ cuenta.cargos.length }}</span>
-        </button>
-
-        <button
-          type="button"
-          class="tab"
-          :class="{ 'tab--activa': filtroDestinatario === 'paciente' }"
-          @click="filtroDestinatario = 'paciente'"
-        >
-          Paciente
-          <span class="badge badge--alerta">{{ contarPorDestinatario('paciente') }}</span>
-        </button>
-
-        <button
-          type="button"
-          class="tab"
-          :class="{ 'tab--activa': filtroDestinatario === 'obra_social' }"
-          @click="filtroDestinatario = 'obra_social'"
-        >
-          Obra Social
-          <span class="badge badge--exito">{{ contarPorDestinatario('obra_social') }}</span>
-        </button>
-
-        <button
-          type="button"
-          class="tab"
-          :class="{ 'tab--activa': filtroDestinatario === 'estado' }"
-          @click="filtroDestinatario = 'estado'"
-        >
-          Estado
-          <span class="badge badge--exito">{{ contarPorDestinatario('estado') }}</span>
-        </button>
-      </div>
-
-      <table class="tabla">
-        <thead>
-          <tr>
-            <th>Fecha y Hora</th>
-            <th>Concepto</th>
-            <th>Destinatario</th>
-            <th>Responsable de Pago</th>
-            <th>Origen</th>
-            <th class="num">Monto</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="cargo in cargosFiltrados" :key="cargo.id">
-            <td class="tenue">{{ formatearFecha(cargo.creado_en) }}</td>
-            <td><strong>{{ cargo.concepto }}</strong></td>
-            <td>
-              <span class="badge" :class="claseBadgeDestinatario(cargo.destinatario)">
-                {{ formatearDestinatario(cargo.destinatario) }}
-              </span>
-            </td>
-            <td>{{ cargo.destinatario_nombre }}</td>
-            <td class="tenue">{{ cargo.evento_origen || 'Manual' }}</td>
-            <td class="num"><strong>${{ formatearMonto(cargo.monto) }}</strong></td>
-          </tr>
-          <tr v-if="cargosFiltrados.length === 0">
-            <td colspan="6" class="tenue" style="text-align: center; padding: var(--espacio-lg);">
-              No hay cargos registrados para este filtro en la cuenta activa.
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <!-- Sistema de avisos flotantes del diseño global -->
-    <div class="avisos">
-      <transition-group name="aviso">
-        <div
-          v-for="item in avisos"
-          :key="item.id"
-          class="aviso"
-          :class="{
-            'aviso--error': item.tipo === 'error',
-            'aviso--alerta': item.tipo === 'alerta',
-          }"
-        >
-          {{ item.texto }}
+        <div class="tarjeta">
+          <p class="tenue">Total acumulado en cuenta</p>
+          <h2 class="fac__dato">{{ formatearMonto(cuenta.totalAcumulado) }}</h2>
+          <p class="tenue">
+            Paciente: <strong>{{ formatearMonto(cuenta.totales.paciente) }}</strong> ·
+            Obra social: <strong>{{ formatearMonto(cuenta.totales.obra_social) }}</strong> ·
+            Estado: <strong>{{ formatearMonto(cuenta.totales.estado) }}</strong>
+          </p>
         </div>
-      </transition-group>
-    </div>
-  </div>
+      </div>
+
+      <FormularioCargo
+        class="fac__bloque"
+        :precios="precios"
+        :simulacion="SIMULACION_DISPONIBLE"
+        :ocupado="guardando"
+        @registrar="registrarCargo"
+        @simular="simularMedicacion"
+      />
+
+      <TablaCargos :cargos="cuenta.cargos" />
+    </template>
+
+    <transition-group name="aviso" tag="div" class="avisos">
+      <div v-for="a in avisos" :key="a.id" :class="['aviso', a.tipo !== 'ok' && `aviso--${a.tipo}`]">{{ a.texto }}</div>
+    </transition-group>
+  </section>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref } from 'vue';
+import PanelCobertura from '../components/PanelCobertura.vue';
+import FormularioCargo from '../components/FormularioCargo.vue';
+import TablaCargos from '../components/TablaCargos.vue';
 import { facturacionService } from '../services/facturacionService';
+import { formatearMonto } from '../services/formato';
 
-const pacienteId = ref(1);
+// La ruta de simulacion del backend solo existe fuera de produccion.
+const SIMULACION_DISPONIBLE = import.meta.env.DEV;
+// El cargo de un evento se genera aparte, un instante despues de publicarlo.
+const ESPERA_EVENTO_MS = 500;
+
+const idBuscado = ref(null);
+// Datos del paciente consultado. Las acciones usan cuenta.pacienteId y no el
+// campo de busqueda, que puede haber cambiado sin volver a consultar.
 const cuenta = ref(null);
 const cobertura = ref(null);
-const cargando = ref(false);
-const filtroDestinatario = ref('todos');
-const avisos = ref([]);
+const coberturas = ref([]);
+const precios = ref([]);
 
-const mostrarAviso = (texto, tipo = 'exito') => {
-  const id = Date.now() + Math.random();
-  avisos.value.push({ id, texto, tipo });
+const cargando = ref(false);
+const guardando = ref(false);
+const error = ref('');
+const avisos = ref([]);
+let siguienteAviso = 0;
+
+function avisar(texto, tipo = 'ok') {
+  const id = ++siguienteAviso;
+  avisos.value.push({ id, tipo, texto });
   setTimeout(() => {
     avisos.value = avisos.value.filter((a) => a.id !== id);
-  }, 3500);
-};
+  }, tipo === 'error' ? 6000 : 3500);
+}
 
-const cargosFiltrados = computed(() => {
-  if (!cuenta.value || !cuenta.value.cargos) return [];
-  if (filtroDestinatario.value === 'todos') return cuenta.value.cargos;
-  return cuenta.value.cargos.filter((c) => c.destinatario === filtroDestinatario.value);
-});
-
-const contarPorDestinatario = (tipo) => {
-  if (!cuenta.value || !cuenta.value.cargos) return 0;
-  return cuenta.value.cargos.filter((c) => c.destinatario === tipo).length;
-};
-
-const totalPorDestinatario = (tipo) => {
-  if (!cuenta.value || !cuenta.value.cargos) return 0;
-  return cuenta.value.cargos
-    .filter((c) => c.destinatario === tipo)
-    .reduce((acc, c) => acc + Number(c.monto || 0), 0);
-};
-
-const totalCobertura = computed(() => {
-  return totalPorDestinatario('obra_social') + totalPorDestinatario('estado');
-});
-
-const formatearMonto = (valor) => {
-  return Number(valor || 0).toLocaleString('es-AR', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-};
-
-const formatearFecha = (fechaIso) => {
-  if (!fechaIso) return '-';
-  return new Date(fechaIso).toLocaleString('es-AR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-};
-
-const formatearDestinatario = (dest) => {
-  const mapa = {
-    paciente: 'PACIENTE',
-    obra_social: 'OBRA SOCIAL',
-    estado: 'ESTADO',
-  };
-  return mapa[dest] || dest;
-};
-
-const claseBadgeCobertura = (tipo) => {
-  if (tipo === 'publica' || tipo === 'prepaga') return 'badge--exito';
-  return 'badge--alerta';
-};
-
-const claseBadgeDestinatario = (dest) => {
-  if (dest === 'obra_social' || dest === 'estado') return 'badge--exito';
-  return 'badge--alerta';
-};
-
-const cargarDatosPaciente = async () => {
-  if (!pacienteId.value || pacienteId.value < 1) {
-    mostrarAviso('Ingresá un ID de paciente válido.', 'alerta');
-    return;
-  }
-
+async function consultar() {
   cargando.value = true;
+  error.value = '';
   try {
-    const [dataCuenta, dataCobertura] = await Promise.all([
-      facturacionService.obtenerCuenta(pacienteId.value),
-      facturacionService.obtenerCobertura(pacienteId.value),
+    const [datosCuenta, datosCobertura, catalogo, preciosVigentes] = await Promise.all([
+      facturacionService.obtenerCuenta(idBuscado.value),
+      facturacionService.obtenerCobertura(idBuscado.value),
+      facturacionService.coberturas(),
+      facturacionService.preciosInsumo(),
     ]);
-
-    cuenta.value = dataCuenta;
-    cobertura.value = dataCobertura.cobertura;
-  } catch (error) {
-    console.error('Error al cargar datos de facturación:', error);
-    mostrarAviso('No se pudo conectar con el servidor de facturación.', 'error');
+    cuenta.value = datosCuenta;
+    cobertura.value = datosCobertura.cobertura;
+    coberturas.value = catalogo;
+    precios.value = preciosVigentes;
+  } catch (err) {
+    // Nunca se muestran datos de relleno: si la consulta falla, se ve el error.
+    cuenta.value = null;
+    cobertura.value = null;
+    error.value = err.message;
   } finally {
     cargando.value = false;
   }
-};
+}
 
-onMounted(() => {
-  cargarDatosPaciente();
-});
+async function recargarCuenta() {
+  cuenta.value = await facturacionService.obtenerCuenta(cuenta.value.pacienteId);
+}
+
+// Corre una accion que guarda, bloquea los botones mientras tanto y avisa si falla.
+async function guardar(accion) {
+  guardando.value = true;
+  try {
+    await accion();
+  } catch (err) {
+    avisar(err.message, 'error');
+  } finally {
+    guardando.value = false;
+  }
+}
+
+function cambiarCobertura(coberturaId) {
+  return guardar(async () => {
+    const datos = await facturacionService.asignarCobertura(cuenta.value.pacienteId, coberturaId);
+    cobertura.value = datos.cobertura;
+    avisar(`Cobertura vigente: ${datos.cobertura.nombre}.`);
+  });
+}
+
+function registrarCargo(cargo) {
+  return guardar(async () => {
+    const cargos = await facturacionService.registrarCargo(cuenta.value.pacienteId, cargo);
+    await recargarCuenta();
+    avisar(`Se generaron ${cargos.length} cargo(s) por ${cargo.concepto}.`);
+  });
+}
+
+function simularMedicacion({ insumoId, cantidad }) {
+  return guardar(async () => {
+    const cargosAntes = cuenta.value.cargos.length;
+    await facturacionService.simularMedicacion({ pacienteId: cuenta.value.pacienteId, insumoId, cantidad });
+    await new Promise((resolver) => setTimeout(resolver, ESPERA_EVENTO_MS));
+    await recargarCuenta();
+    if (cuenta.value.cargos.length > cargosAntes) {
+      avisar('Evento procesado: se generaron los cargos de la medicación.');
+    } else {
+      avisar('El evento se publicó pero todavía no hay cargos nuevos. Si no aparecen, revisá la consola del backend.', 'alerta');
+    }
+  });
+}
 </script>
+
+<style>
+.fac__cabecera {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: var(--espacio-md);
+  margin-bottom: var(--espacio-md);
+}
+.fac__buscador { display: flex; align-items: flex-end; gap: var(--espacio-sm); }
+.fac__id { width: 120px; }
+.fac__error { color: var(--color-peligro); }
+.fac__resumen {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: var(--espacio-md);
+  margin-bottom: var(--espacio-md);
+}
+.fac__dato { margin: var(--espacio-xs) 0; }
+.fac__bloque { margin-bottom: var(--espacio-md); }
+</style>
