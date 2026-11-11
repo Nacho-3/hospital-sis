@@ -46,7 +46,8 @@ const tipo = computed(() => TIPOS_COBERTURA[props.cobertura.tipo] ?? { etiqueta:
 </script>
 
 <style>
-.cob__titulo { display: flex; align-items: center; gap: var(--espacio-sm); margin: var(--espacio-xs) 0; }
+.cob__titulo { display: flex; flex-wrap: wrap; align-items: center; gap: var(--espacio-xs) var(--espacio-sm); margin: var(--espacio-xs) 0; }
+.cob__titulo h2 { margin: 0; }
 .cob__cambio {
   display: flex;
   align-items: flex-end;

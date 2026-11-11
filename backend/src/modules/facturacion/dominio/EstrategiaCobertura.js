@@ -66,7 +66,9 @@ const ESTRATEGIAS = new Map([
 
 // Reparte un monto entre el paciente y el financiador de su cobertura.
 // Devuelve una parte por destinatario: { monto, destinatario, destinatarioNombre }.
-// Las partes de $0 no se devuelven: no hay nada que cobrarle a ese destinatario.
+// La parte del paciente va siempre, aunque sea de $0: la HU 1.1 pide que con
+// cobertura publica quede registrado el cargo de 0 pesos a su nombre.
+// La del financiador va solo si le queda algo por pagar.
 function calcularDistribucionCargo({ montoTotal, cobertura, nombrePaciente = 'Paciente' }) {
   if (typeof montoTotal !== 'number' || !Number.isFinite(montoTotal) || montoTotal < 0) {
     throw new CoberturaInvalidaError('El monto a facturar tiene que ser un numero mayor o igual a cero.');
@@ -89,7 +91,7 @@ function calcularDistribucionCargo({ montoTotal, cobertura, nombrePaciente = 'Pa
   ];
 
   return partes
-    .filter((parte) => parte.centavos > 0)
+    .filter((parte) => parte.destinatario === DESTINATARIOS.PACIENTE || parte.centavos > 0)
     .map(({ centavos, destinatario, destinatarioNombre }) => ({
       monto: aPesos(centavos),
       destinatario,

@@ -21,6 +21,11 @@ router.get('/coberturas', h(async (req, res) => {
   res.json(await facturacion.coberturas());
 }));
 
+// Prestaciones facturables (nomenclador) con su valor base.
+router.get('/nomenclador', h(async (req, res) => {
+  res.json(await facturacion.nomenclador());
+}));
+
 // Precio vigente de cada insumo.
 router.get('/precios-insumo', h(async (req, res) => {
   res.json(await facturacion.preciosVigentes());
@@ -44,6 +49,12 @@ router.get('/cuenta/:pacienteId', h(async (req, res) => {
 // Cargo manual: { concepto, monto }. Responde los cargos que genero (uno por destinatario).
 router.post('/cuenta/:pacienteId/cargos', h(async (req, res) => {
   res.status(201).json(await facturacion.registrarCargoManual(req.params.pacienteId, req.body));
+}));
+
+// Factura una prestacion del nomenclador (HU 1.1): { nomencladorId }.
+// Responde los cargos que genero (uno por destinatario).
+router.post('/cuenta/:pacienteId/prestaciones', h(async (req, res) => {
+  res.status(201).json(await facturacion.registrarCargoPorPrestacion(req.params.pacienteId, req.body));
 }));
 
 // Solo fuera de produccion: publica eventos de prueba (ver simulacion.js).

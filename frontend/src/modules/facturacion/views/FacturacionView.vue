@@ -50,9 +50,11 @@
 
       <FormularioCargo
         class="fac__bloque"
+        :nomenclador="nomenclador"
         :precios="precios"
         :simulacion="SIMULACION_DISPONIBLE"
         :ocupado="guardando"
+        @facturar="facturarPrestacion"
         @registrar="registrarCargo"
         @simular="simularMedicacion"
       />
@@ -85,6 +87,7 @@ const idBuscado = ref(null);
 const cuenta = ref(null);
 const cobertura = ref(null);
 const coberturas = ref([]);
+const nomenclador = ref([]);
 const precios = ref([]);
 
 const cargando = ref(false);
@@ -105,15 +108,17 @@ async function consultar() {
   cargando.value = true;
   error.value = '';
   try {
-    const [datosCuenta, datosCobertura, catalogo, preciosVigentes] = await Promise.all([
+    const [datosCuenta, datosCobertura, catalogo, prestaciones, preciosVigentes] = await Promise.all([
       facturacionService.obtenerCuenta(idBuscado.value),
       facturacionService.obtenerCobertura(idBuscado.value),
       facturacionService.coberturas(),
+      facturacionService.nomenclador(),
       facturacionService.preciosInsumo(),
     ]);
     cuenta.value = datosCuenta;
     cobertura.value = datosCobertura.cobertura;
     coberturas.value = catalogo;
+    nomenclador.value = prestaciones;
     precios.value = preciosVigentes;
   } catch (err) {
     // Nunca se muestran datos de relleno: si la consulta falla, se ve el error.
@@ -146,6 +151,14 @@ function cambiarCobertura(coberturaId) {
     const datos = await facturacionService.asignarCobertura(cuenta.value.pacienteId, coberturaId);
     cobertura.value = datos.cobertura;
     avisar(`Cobertura vigente: ${datos.cobertura.nombre}.`);
+  });
+}
+
+function facturarPrestacion(nomencladorId) {
+  return guardar(async () => {
+    const cargos = await facturacionService.facturarPrestacion(cuenta.value.pacienteId, nomencladorId);
+    await recargarCuenta();
+    avisar(`Se generaron ${cargos.length} cargo(s) por ${cargos[0].concepto}.`);
   });
 }
 

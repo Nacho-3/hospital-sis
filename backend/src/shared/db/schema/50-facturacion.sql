@@ -29,7 +29,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS paciente_cobertura_vigente_uidx
   ON paciente_cobertura (paciente_id)
   WHERE vigente_hasta IS NULL;
 
--- Todavia sin uso en el codigo: queda para los cargos por prestacion.
+-- Prestaciones facturables con su valor base (HU 1.1: "Consulta Medica General").
 CREATE TABLE IF NOT EXISTS nomenclador (
   id SERIAL PRIMARY KEY,
   codigo VARCHAR(40) NOT NULL UNIQUE,
@@ -81,6 +81,11 @@ CREATE TABLE IF NOT EXISTS cargos (
   creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- Detalle de la linea: el insumo y la cantidad en los cargos automaticos
+-- ("Ibuprofeno 400mg x1"), el codigo en los de prestacion. Va aparte del
+-- concepto porque la HU 2.1 pide el concepto fijo "Insumos de Farmacia".
+ALTER TABLE cargos ADD COLUMN IF NOT EXISTS detalle VARCHAR(160);
+
 CREATE INDEX IF NOT EXISTS cargos_cuenta_idx ON cargos (cuenta_id);
 
 -- Si el mismo evento llega dos veces, no se cobra dos veces. Un evento genera
@@ -93,11 +98,21 @@ CREATE UNIQUE INDEX IF NOT EXISTS cargos_evento_destinatario_uidx
   WHERE evento_origen IS NOT NULL;
 
 -- Datos de ejemplo para probar el modulo. No pisan datos existentes.
+-- Las dos primeras son las de los escenarios de la HU 1.1.
 INSERT INTO coberturas (nombre, tipo, copago_fijo) VALUES
+  ('Obra Social Pública', 'publica', NULL),
+  ('Medicina Prepaga Premium', 'prepaga', 3000.00),
   ('OSDE 210', 'prepaga', 2500.00),
   ('Swiss Medical SMG20', 'prepaga', 4000.00),
   ('Salud Publica Provincial', 'publica', NULL)
 ON CONFLICT (nombre) DO NOTHING;
+
+INSERT INTO nomenclador (codigo, descripcion, valor_base) VALUES
+  ('CONS-GEN', 'Consulta Médica General', 15000.00),
+  ('CONS-ESP', 'Consulta con Especialista', 22000.00),
+  ('RX-TORAX', 'Radiografía de tórax', 18500.00),
+  ('LAB-RUT', 'Laboratorio de rutina', 12000.00)
+ON CONFLICT (codigo) DO NOTHING;
 
 -- Precios de los insumos de ejemplo de 30-camas.sql. La fecha es fija para
 -- que volver a levantar el backend otro dia no agregue un precio nuevo.

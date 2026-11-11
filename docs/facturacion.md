@@ -18,7 +18,8 @@ Cuenta (id, paciente_id, estado, abierta_en, cerrada_en)      una sola activa po
 - `tipo` de cobertura: `publica`, `prepaga`, `particular`. Un paciente sin cobertura vigente se factura como particular.
 - `destinatario` de un cargo: `paciente`, `obra_social`, `estado`.
 - `pacientes` es de Admisión e `insumos` es de Camas: acá solo se leen.
-- `nomenclador` y `cargos.nomenclador_id` están en el esquema pero todavía no se usan.
+- `nomenclador` guarda las prestaciones facturables con su valor base ("Consulta Médica General", $15.000).
+- `cargos.detalle` guarda el insumo y la cantidad de un cargo automático ("Ibuprofeno 400mg x1") o el código de la prestación.
 
 ## Capas
 
@@ -37,14 +38,24 @@ repositorio/   Todo el SQL del módulo.
 | Tipo | Paciente | Resto |
 |---|---|---|
 | `particular` | el total | — |
-| `publica` | 0 | `estado` |
+| `publica` | $0 (el cargo se registra igual) | `estado` |
 | `prepaga` | `copago_fijo` (nunca más que el total) | `obra_social` |
 
 Un tipo nuevo es una clase nueva registrada en `ESTRATEGIAS`. Decisiones:
 
-- **No se guardan cargos de $0.** En una cobertura pública el paciente no tiene cargo, en vez de tener uno de $0.
+- **La parte del paciente se guarda siempre, aunque sea $0.** La HU 1.1 pide el cargo de 0 pesos a su nombre con cobertura pública. La del financiador se guarda solo si tiene algo que pagar.
 - **La plata se calcula en centavos** (`dominio/dinero.js`) para que las partes siempre sumen el total.
 - **El reparto se calcula solo en el backend.** El frontend muestra lo que devuelve la API.
+
+## Facturar una prestación (HU 1.1)
+
+`POST /cuenta/:pacienteId/prestaciones` con `{ nomencladorId }`. Toma el `valor_base` de la prestación, lo reparte con la estrategia de la cobertura vigente y guarda un cargo por destinatario con el concepto de la prestación (por ejemplo "Consulta Médica General") y `nomenclador_id`.
+
+| Escenario | Cobertura | Paciente | Financiador |
+|---|---|---|---|
+| HU 1.1 esc. 1 — Juan Gómez | Obra Social Pública | $0 | Estado $15.000 |
+| HU 1.1 esc. 2 — Ana Rojas | Medicina Prepaga Premium (copago $3.000) | $3.000 | Prepaga $12.000 |
+| Regla particular | Sin cobertura | $15.000 | — |
 
 ## Cargos automáticos (HU 2.1)
 
@@ -52,7 +63,7 @@ Facturación escucha `MedicacionAdministrada` `{ administracionId, pacienteId, i
 
 1. Busca el precio vigente del insumo en `precios_insumo` (el último con `vigente_desde <= hoy`).
 2. Reparte `precio × cantidad` con la estrategia de la cobertura vigente.
-3. Abre la cuenta activa del paciente si no tenía y guarda un cargo por destinatario.
+3. Abre la cuenta activa del paciente si no tenía y guarda un cargo por destinatario, con el concepto "Insumos de Farmacia", el insumo y la cantidad en `detalle`, y el evento en `evento_origen` para la trazabilidad.
 
 Si falta el precio o el paciente no existe, no se guarda nada y el error queda en la consola del backend (`[facturacion] No se pudo procesar...`): el módulo que publicó el evento no se entera.
 
@@ -74,10 +85,12 @@ Si falta el precio o el paciente no existe, no se guarda nada y el error queda e
 | Método y ruta | Qué hace |
 |---|---|
 | `GET /coberturas` | Catálogo de coberturas |
+| `GET /nomenclador` | Prestaciones facturables con su valor base |
 | `GET /precios-insumo` | Precio vigente de cada insumo |
 | `GET /cobertura/:pacienteId` | Cobertura vigente (particular si no tiene) |
 | `PUT /cobertura/:pacienteId` | Cambia la cobertura: `{ coberturaId }`, `null` = particular |
 | `GET /cuenta/:pacienteId` | Cuenta activa, cargos y totales por destinatario |
+| `POST /cuenta/:pacienteId/prestaciones` | Factura una prestación: `{ nomencladorId }` (HU 1.1) |
 | `POST /cuenta/:pacienteId/cargos` | Cargo manual: `{ concepto, monto }` |
 | `POST /simulacion/medicacion-administrada` | **Temporal, solo fuera de producción.** Publica el evento por Atención |
 
@@ -88,7 +101,8 @@ Errores: `400 DATOS_INVALIDOS`, `404 NO_ENCONTRADO`, `409 CONFLICTO_DE_CONCURREN
 - **Permisos.** Ninguna ruta pide usuario: cualquiera puede ver una cuenta o cargarle un cargo. Depende de Identidad. Cuando esté, los cargos manuales deberían guardar qué usuario los creó.
 - **Ruta de simulación.** Borrar `rutas/simulacion.js` cuando Atención publique `MedicacionAdministrada`.
 - **Cierre de cuenta.** `cuentas.estado = 'cerrada'` existe en el esquema y ningún código lo usa.
-- **Prestaciones por nomenclador y reportes administrativos** del diseño: sin implementar.
+- **Reportes administrativos** del diseño: sin implementar.
+- **Copago por insumo.** La prepaga cobra el copago fijo en cada cargo, también en los de insumos. Las historias solo lo definen para la consulta; si el copago tiene que ser solo por consulta, se resuelve en la estrategia.
 
 ## Cómo probar
 
@@ -98,4 +112,6 @@ node --test                 # unitarios (Strategy y validaciones)
 DB_TESTS=1 node --test      # suma los tests contra la base local
 ```
 
-Para probar en la pantalla hacen falta pacientes: `psql -U postgres -d his -f docs/facturacion-pacientes-demo.sql`.
+`tests/historias.db.test.js` reproduce cada escenario de las historias con sus datos exactos.
+
+Para probar en la pantalla hacen falta pacientes: `docs/facturacion-pacientes-demo.sql` crea a Juan Gómez (Obra Social Pública), Ana Rojas (Medicina Prepaga Premium) y Carlos López (particular).

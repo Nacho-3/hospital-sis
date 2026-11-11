@@ -105,10 +105,11 @@ test('facturacion contra la base', { skip: !activo }, async (t) => {
     assert.deepEqual(reparto(cuentaPrepaga), ['obra_social:6000', 'paciente:2500']);
     assert.equal(cuentaPrepaga.totalAcumulado, 8500);
     assert.deepEqual(cuentaPrepaga.totales, { paciente: 2500, obra_social: 6000, estado: 0 });
-    assert.equal(cuentaPrepaga.cargos[0].concepto, `Insumo ${marca} x1`);
+    assert.equal(cuentaPrepaga.cargos[0].concepto, 'Insumos de Farmacia');
+    assert.equal(cuentaPrepaga.cargos[0].detalle, `Insumo ${marca} x1`);
 
     await facturacion.registrarCargoPorMedicacion(carga(conPublica.id, 'publica', { cantidad: 2 }));
-    assert.deepEqual(reparto(await facturacion.cuentaDePaciente(conPublica.id)), ['estado:17000']);
+    assert.deepEqual(reparto(await facturacion.cuentaDePaciente(conPublica.id)), ['estado:17000', 'paciente:0']);
 
     await facturacion.registrarCargoPorMedicacion(carga(particular.id, 'particular'));
     assert.deepEqual(reparto(await facturacion.cuentaDePaciente(particular.id)), ['paciente:8500']);

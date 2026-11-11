@@ -6,15 +6,26 @@
     </p>
 
     <form class="cargo__form" @submit.prevent="enviar">
-      <label v-if="simulacion" class="campo">
+      <label class="campo">
         <span>Origen del cargo</span>
         <select v-model="origen">
+          <option value="prestacion">Prestación del nomenclador</option>
           <option value="manual">Cargo manual</option>
-          <option value="medicacion">Medicación administrada (simulación)</option>
+          <option v-if="simulacion" value="medicacion">Medicación administrada (simulación)</option>
         </select>
       </label>
 
-      <template v-if="origen === 'manual'">
+      <label v-if="origen === 'prestacion'" class="campo cargo__concepto">
+        <span>Prestación</span>
+        <select v-model="prestacionId" required>
+          <option :value="null" disabled>Elegí una prestación</option>
+          <option v-for="p in nomenclador" :key="p.id" :value="p.id">
+            {{ p.descripcion }} · {{ formatearMonto(p.valor_base) }}
+          </option>
+        </select>
+      </label>
+
+      <template v-else-if="origen === 'manual'">
         <label class="campo cargo__concepto">
           <span>Concepto</span>
           <input v-model.trim="manual.concepto" type="text" maxlength="160" placeholder="Ej: Radiografía de tórax" required />
@@ -42,7 +53,7 @@
       </template>
 
       <button class="btn btn--primario" :disabled="ocupado">
-        {{ origen === 'manual' ? 'Generar cargo' : 'Publicar evento' }}
+        {{ origen === 'medicacion' ? 'Publicar evento' : 'Generar cargo' }}
       </button>
     </form>
 
@@ -58,20 +69,24 @@ import { reactive, ref } from 'vue';
 import { formatearMonto } from '../services/formato';
 
 defineProps({
+  // Prestaciones facturables con su valor base.
+  nomenclador: { type: Array, default: () => [] },
   // Precios vigentes de insumos, para simular una medicacion.
   precios: { type: Array, default: () => [] },
   // Muestra la opcion de simular el evento (solo en desarrollo).
   simulacion: { type: Boolean, default: false },
   ocupado: { type: Boolean, default: false },
 });
-const emit = defineEmits(['registrar', 'simular']);
+const emit = defineEmits(['facturar', 'registrar', 'simular']);
 
-const origen = ref('manual');
+const origen = ref('prestacion');
+const prestacionId = ref(null);
 const manual = reactive({ concepto: '', monto: null });
 const medicacion = reactive({ insumoId: null, cantidad: 1 });
 
 function enviar() {
-  if (origen.value === 'manual') emit('registrar', { ...manual });
+  if (origen.value === 'prestacion') emit('facturar', prestacionId.value);
+  else if (origen.value === 'manual') emit('registrar', { ...manual });
   else emit('simular', { ...medicacion });
 }
 </script>

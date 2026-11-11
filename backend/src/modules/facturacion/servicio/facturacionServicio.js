@@ -10,8 +10,13 @@ const { enteroPositivo, texto, monto } = require('./validar');
 // unique_violation de PostgreSQL.
 const PG_VIOLACION_UNICA = '23505';
 
+// Concepto de los cargos automaticos por medicacion (HU 2.1). El insumo y la
+// cantidad van en el detalle.
+const CONCEPTO_INSUMOS = 'Insumos de Farmacia';
+
+// "Ana Rojas": asi figura el paciente en los cargos a su nombre (HU 1.1).
 function nombreCompleto(paciente) {
-  return `${paciente.apellido}, ${paciente.nombre}`;
+  return `${paciente.nombre} ${paciente.apellido}`;
 }
 
 async function pacienteExistente(db, pacienteId) {
@@ -95,19 +100,19 @@ async function cuentaDePaciente(pacienteId) {
 
 // Reparte el monto segun la cobertura vigente (Strategy) y guarda un cargo por
 // destinatario en la cuenta activa. Corre dentro de la transaccion de quien llama.
-async function guardarCargos(db, { paciente, concepto, montoTotal, insumoId = null, eventoOrigen = null }) {
+// `origen` son los datos que comparten todos los cargos de la operacion:
+// { concepto, detalle?, insumoId?, nomencladorId?, eventoOrigen? }.
+async function guardarCargos(db, { paciente, montoTotal, ...origen }) {
   const cobertura = await repo.coberturaVigenteDePaciente(db, paciente.id);
   const partes = calcularDistribucionCargo({
     montoTotal,
     cobertura,
     nombrePaciente: nombreCompleto(paciente),
   });
-  if (partes.length === 0) return [];
-
   const cuentaId = await repo.obtenerOCrearCuentaActiva(db, paciente.id);
   const cargos = [];
   for (const parte of partes) {
-    cargos.push(await repo.insertarCargo(db, { cuentaId, concepto, insumoId, eventoOrigen, ...parte }));
+    cargos.push(await repo.insertarCargo(db, { cuentaId, ...origen, ...parte }));
   }
   return cargos;
 }
@@ -123,6 +128,29 @@ async function registrarCargoManual(pacienteId, datosDelCargo = {}) {
     const paciente = await pacienteExistente(db, id);
     return guardarCargos(db, { paciente, ...datos });
   });
+}
+
+// HU 1.1: factura una prestacion del nomenclador ("Consulta Medica General")
+// por su valor base, repartido segun la cobertura del paciente.
+async function registrarCargoPorPrestacion(pacienteId, { nomencladorId } = {}) {
+  const id = enteroPositivo(pacienteId, 'pacienteId');
+  const prestacionId = enteroPositivo(nomencladorId, 'nomencladorId');
+  return conTransaccion(async (db) => {
+    const paciente = await pacienteExistente(db, id);
+    const prestacion = await repo.obtenerPrestacion(db, prestacionId);
+    if (!prestacion) throw new NoEncontradoError('la prestacion', prestacionId);
+    return guardarCargos(db, {
+      paciente,
+      montoTotal: prestacion.valor_base,
+      concepto: prestacion.descripcion,
+      detalle: prestacion.codigo,
+      nomencladorId: prestacion.id,
+    });
+  });
+}
+
+async function nomenclador() {
+  return repo.listarNomenclador(pool);
 }
 
 // Valida la carga de MedicacionAdministrada: { administracionId, pacienteId, insumoId, cantidad }.
@@ -153,7 +181,8 @@ async function registrarCargoPorMedicacion(carga) {
 
       const cargos = await guardarCargos(db, {
         paciente,
-        concepto: `${precio.insumo} x${cantidad}`,
+        concepto: CONCEPTO_INSUMOS,
+        detalle: `${precio.insumo} x${cantidad}`,
         montoTotal: aPesos(aCentavos(precio.precio) * cantidad),
         insumoId,
         eventoOrigen,
@@ -180,6 +209,8 @@ module.exports = {
   asignarCobertura,
   cuentaDePaciente,
   registrarCargoManual,
+  registrarCargoPorPrestacion,
+  nomenclador,
   cargaDeMedicacion,
   registrarCargoPorMedicacion,
   preciosVigentes,

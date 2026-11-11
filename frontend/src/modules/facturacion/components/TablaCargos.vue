@@ -28,14 +28,17 @@
       <tbody>
         <tr v-for="cargo in visibles" :key="cargo.id">
           <td class="tenue">{{ formatearFecha(cargo.creado_en) }}</td>
-          <td><strong>{{ cargo.concepto }}</strong></td>
+          <td>
+            <strong>{{ cargo.concepto }}</strong>
+            <div v-if="cargo.detalle" class="tenue">{{ cargo.detalle }}</div>
+          </td>
           <td>
             <span :class="['badge', DESTINATARIOS[cargo.destinatario]?.clase]">
               {{ DESTINATARIOS[cargo.destinatario]?.etiqueta ?? cargo.destinatario }}
             </span>
           </td>
           <td>{{ cargo.destinatario_nombre }}</td>
-          <td class="tenue">{{ cargo.evento_origen || 'Manual' }}</td>
+          <td class="tenue">{{ origenDe(cargo) }}</td>
           <td class="num"><strong>{{ formatearMonto(cargo.monto) }}</strong></td>
         </tr>
         <tr v-if="visibles.length === 0">
@@ -68,6 +71,12 @@ const filtros = computed(() => [
     cantidad: de(id).length,
   })),
 ]);
+
+// De donde salio el cargo: el evento que lo genero, el nomenclador o la carga manual.
+function origenDe(cargo) {
+  if (cargo.evento_origen) return cargo.evento_origen;
+  return cargo.nomenclador_id ? 'Nomenclador' : 'Manual';
+}
 
 const visibles = computed(() => (filtro.value === TODOS ? props.cargos : de(filtro.value)));
 </script>

@@ -23,25 +23,26 @@ test('Sin cobertura se factura como particular', () => {
   assert.deepEqual(resultado, [{ monto: 5000, destinatario: 'paciente', destinatarioNombre: 'Ana' }]);
 });
 
-test('Publica: el paciente paga 0 y el estado paga el total', () => {
+test('Publica (HU 1.1 esc. 1): cargo de $0 al paciente y el total al estado', () => {
   const resultado = calcularDistribucionCargo({
-    montoTotal: 12000,
-    cobertura: { tipo: 'publica', nombre: 'Hospital Publico' },
-    nombrePaciente: 'Ana Gomez',
+    montoTotal: 15000,
+    cobertura: { tipo: 'publica', nombre: 'Obra Social Pública' },
+    nombrePaciente: 'Juan Gómez',
   });
 
-  // Al paciente no se le genera un cargo de $0: solo figura el estado.
   assert.deepEqual(resultado, [
-    { monto: 12000, destinatario: 'estado', destinatarioNombre: 'Hospital Publico' },
+    { monto: 0, destinatario: 'paciente', destinatarioNombre: 'Juan Gómez' },
+    { monto: 15000, destinatario: 'estado', destinatarioNombre: 'Obra Social Pública' },
   ]);
 });
 
-test('Prepaga: copago fijo al paciente y el resto a la obra social', () => {
-  const resultado = calcularDistribucionCargo({ montoTotal: 8500, cobertura: OSDE, nombrePaciente: 'Luis Medina' });
+test('Prepaga (HU 1.1 esc. 2): copago fijo al paciente y el resto a la prepaga', () => {
+  const cobertura = { tipo: 'prepaga', nombre: 'Medicina Prepaga Premium', copago_fijo: 3000 };
+  const resultado = calcularDistribucionCargo({ montoTotal: 15000, cobertura, nombrePaciente: 'Ana Rojas' });
 
   assert.deepEqual(resultado, [
-    { monto: 2000, destinatario: 'paciente', destinatarioNombre: 'Luis Medina' },
-    { monto: 6500, destinatario: 'obra_social', destinatarioNombre: 'OSDE' },
+    { monto: 3000, destinatario: 'paciente', destinatarioNombre: 'Ana Rojas' },
+    { monto: 12000, destinatario: 'obra_social', destinatarioNombre: 'Medicina Prepaga Premium' },
   ]);
 });
 
@@ -56,13 +57,16 @@ test('Prepaga: si el monto no supera el copago, el paciente paga todo', () => {
   }
 });
 
-test('Prepaga sin copago configurado: la obra social paga todo', () => {
+test('Prepaga sin copago configurado: $0 al paciente y todo a la obra social', () => {
   const resultado = calcularDistribucionCargo({
     montoTotal: 1000,
     cobertura: { tipo: 'prepaga', nombre: 'OSDE', copago_fijo: null },
   });
 
-  assert.deepEqual(resultado, [{ monto: 1000, destinatario: 'obra_social', destinatarioNombre: 'OSDE' }]);
+  assert.deepEqual(resultado, [
+    { monto: 0, destinatario: 'paciente', destinatarioNombre: 'Paciente' },
+    { monto: 1000, destinatario: 'obra_social', destinatarioNombre: 'OSDE' },
+  ]);
 });
 
 test('Las partes siempre suman el total, tambien con centavos', () => {
@@ -73,8 +77,10 @@ test('Las partes siempre suman el total, tambien con centavos', () => {
   assert.deepEqual(resultado.map((parte) => parte.monto), [0.1, 0.2]);
 });
 
-test('Un monto de $0 no genera partes', () => {
-  assert.deepEqual(calcularDistribucionCargo({ montoTotal: 0, cobertura: OSDE }), []);
+test('Un monto de $0 deja solo la parte del paciente, en $0', () => {
+  assert.deepEqual(calcularDistribucionCargo({ montoTotal: 0, cobertura: OSDE }), [
+    { monto: 0, destinatario: 'paciente', destinatarioNombre: 'Paciente' },
+  ]);
 });
 
 test('Validacion: rechaza un tipo de cobertura desconocido', () => {

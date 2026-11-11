@@ -54,6 +54,20 @@ async function abrirCobertura(db, pacienteId, coberturaId) {
   );
 }
 
+// ---------- Nomenclador (prestaciones) ----------
+
+const SELECT_PRESTACION = 'SELECT id, codigo, descripcion, valor_base::float8 AS valor_base FROM nomenclador';
+
+async function listarNomenclador(db) {
+  const { rows } = await db.query(`${SELECT_PRESTACION} ORDER BY descripcion`);
+  return rows;
+}
+
+async function obtenerPrestacion(db, nomencladorId) {
+  const { rows } = await db.query(`${SELECT_PRESTACION} WHERE id = $1`, [nomencladorId]);
+  return rows[0] || null;
+}
+
 // ---------- Precios de insumos ----------
 
 // Ultimo precio que ya entro en vigencia, por insumo. insumos es de Camas: solo se lee el nombre.
@@ -111,8 +125,8 @@ async function obtenerOCrearCuentaActiva(db, pacienteId) {
 }
 
 const COLUMNAS_CARGO = `
-  id, cuenta_id, concepto, monto::float8 AS monto, destinatario,
-  destinatario_nombre, insumo_id, evento_origen, creado_en
+  id, cuenta_id, concepto, detalle, monto::float8 AS monto, destinatario,
+  destinatario_nombre, insumo_id, nomenclador_id, evento_origen, creado_en
 `;
 
 async function cargosDeCuenta(db, cuentaId) {
@@ -126,13 +140,17 @@ async function cargosDeCuenta(db, cuentaId) {
   return rows;
 }
 
-async function insertarCargo(db, { cuentaId, concepto, monto, destinatario, destinatarioNombre, insumoId = null, eventoOrigen = null }) {
+async function insertarCargo(db, {
+  cuentaId, concepto, detalle = null, monto, destinatario, destinatarioNombre,
+  insumoId = null, nomencladorId = null, eventoOrigen = null,
+}) {
   const { rows } = await db.query(
     `INSERT INTO cargos
-       (cuenta_id, concepto, monto, destinatario, destinatario_nombre, insumo_id, evento_origen)
-     VALUES ($1, $2, $3, $4, $5, $6, $7)
+       (cuenta_id, concepto, detalle, monto, destinatario, destinatario_nombre,
+        insumo_id, nomenclador_id, evento_origen)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
      RETURNING ${COLUMNAS_CARGO}`,
-    [cuentaId, concepto, monto, destinatario, destinatarioNombre, insumoId, eventoOrigen]
+    [cuentaId, concepto, detalle, monto, destinatario, destinatarioNombre, insumoId, nomencladorId, eventoOrigen]
   );
   return rows[0];
 }
@@ -152,6 +170,8 @@ module.exports = {
   coberturaVigenteDePaciente,
   cerrarCoberturaVigente,
   abrirCobertura,
+  listarNomenclador,
+  obtenerPrestacion,
   listarPreciosVigentes,
   precioVigenteDeInsumo,
   cuentaActiva,

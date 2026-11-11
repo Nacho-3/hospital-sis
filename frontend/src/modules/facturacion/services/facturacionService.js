@@ -29,6 +29,7 @@ const paciente = (pacienteId) => encodeURIComponent(pacienteId);
 
 export const facturacionService = {
   coberturas: () => pedir('/coberturas'),
+  nomenclador: () => pedir('/nomenclador'),
   preciosInsumo: () => pedir('/precios-insumo'),
 
   obtenerCobertura: (pacienteId) => pedir(`/cobertura/${paciente(pacienteId)}`),
@@ -37,6 +38,9 @@ export const facturacionService = {
     pedir(`/cobertura/${paciente(pacienteId)}`, { method: 'PUT', body: { coberturaId } }),
 
   obtenerCuenta: (pacienteId) => pedir(`/cuenta/${paciente(pacienteId)}`),
+  // Factura una prestacion del nomenclador por su valor base.
+  facturarPrestacion: (pacienteId, nomencladorId) =>
+    pedir(`/cuenta/${paciente(pacienteId)}/prestaciones`, { method: 'POST', body: { nomencladorId } }),
   // { concepto, monto }
   registrarCargo: (pacienteId, cargo) =>
     pedir(`/cuenta/${paciente(pacienteId)}/cargos`, { method: 'POST', body: cargo }),
