@@ -17,4 +17,8 @@ router.post('/administraciones/:id/confirmar', ah(async (req, res) => {
   res.json(r);
 }));
 
+router.get('/pacientes', ah(async (req, res) => {
+  res.json(await pacientesService.buscar(req.query.buscar));
+}));
+
 module.exports = router;

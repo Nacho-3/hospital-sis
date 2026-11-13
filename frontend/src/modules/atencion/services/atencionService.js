@@ -1,5 +1,9 @@
 import { pedir } from './api.js';
 
+
+export const buscarPacientes = (texto) =>
+  pedir(`/pacientes?buscar=${encodeURIComponent(texto)}`);
+
 export const registrarSignosVitales = (datos) =>
   pedir('/signos-vitales', { metodo: 'POST', cuerpo: datos });
 export const listarSignosVitales = (pacienteId) =>
