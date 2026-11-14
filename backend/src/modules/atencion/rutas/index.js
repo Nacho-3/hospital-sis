@@ -1,4 +1,5 @@
 const router = require('express').Router();
+const pacientesService = require('../servicio/pacientesService');
 const ah = (fn) => (req, res, next) => fn(req, res, next).catch(next);   // necesario en Express 4
 
 router.post('/signos-vitales', ah(async (req, res) => {
