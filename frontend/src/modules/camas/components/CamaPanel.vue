@@ -22,7 +22,9 @@
 
     <!-- Acciones segun el estado (las mismas que acepta el patron State del backend) -->
     <div class="panel__acciones">
-      <template v-if="cama.estado === 'disponible'">
+      <p v-if="!hayAcciones" class="tenue">Tu rol no tiene acciones sobre esta cama.</p>
+
+      <template v-if="cama.estado === 'disponible' && puedeAsignar">
         <label class="panel__campo">
           Paciente
           <select v-model="pacienteId">
@@ -41,14 +43,14 @@
         <button class="btn" :disabled="ocupado" @click="hacer('mantenimiento')">Enviar a mantenimiento</button>
       </template>
 
-      <template v-else-if="cama.estado === 'reservada'">
+      <template v-else-if="cama.estado === 'reservada' && puedeAsignar">
         <button class="btn btn--primario" :disabled="ocupado" @click="hacer('asignarReservado')">
           Ingresar a {{ cama.reservada_para_apellido }}
         </button>
         <button class="btn" :disabled="ocupado" @click="hacer('cancelarReserva')">Cancelar reserva</button>
       </template>
 
-      <template v-else-if="cama.estado === 'ocupada'">
+      <template v-else-if="cama.estado === 'ocupada' && puedeAsignar">
         <button class="btn btn--peligro" :disabled="ocupado" @click="hacer('alta')">Dar egreso (alta)</button>
         <label class="panel__campo">
           Trasladar a
@@ -64,11 +66,11 @@
 
       <template v-else-if="cama.estado === 'en_limpieza'">
         <p class="tenue">Bloqueada hasta que maestranza confirme la higiene.</p>
-        <button class="btn btn--primario" :disabled="ocupado" @click="hacer('limpieza')">Confirmar limpieza</button>
-        <button class="btn" :disabled="ocupado" @click="hacer('mantenimiento')">Enviar a mantenimiento</button>
+        <button v-if="puedeLimpiar" class="btn btn--primario" :disabled="ocupado" @click="hacer('limpieza')">Confirmar limpieza</button>
+        <button v-if="puedeAsignar" class="btn" :disabled="ocupado" @click="hacer('mantenimiento')">Enviar a mantenimiento</button>
       </template>
 
-      <template v-else-if="cama.estado === 'en_mantenimiento'">
+      <template v-else-if="cama.estado === 'en_mantenimiento' && puedeAsignar">
         <p class="tenue">Fuera de servicio por mantenimiento técnico.</p>
         <button class="btn btn--primario" :disabled="ocupado" @click="hacer('finMantenimiento')">Finalizar mantenimiento</button>
       </template>
@@ -94,6 +96,7 @@
 <script setup>
 import { ref, computed, watch } from 'vue';
 import { camasApi, ESTADOS } from '../services/camasApi';
+import { puede, PERMISOS } from '../services/sesion';
 
 const props = defineProps({
   cama: { type: Object, required: true },
@@ -109,6 +112,13 @@ const destinoId = ref('');
 const historial = ref([]);
 const ocupado = ref(false);
 
+// Acciones segun el permiso (el backend vuelve a controlarlo).
+const puedeAsignar = computed(() => puede(PERMISOS.ASIGNAR));
+const puedeLimpiar = computed(() => puede(PERMISOS.CONFIRMAR_LIMPIEZA));
+const hayAcciones = computed(() =>
+  props.cama.estado === 'en_limpieza' ? puedeAsignar.value || puedeLimpiar.value : puedeAsignar.value
+);
+
 const nombrePiso = computed(() => (Number(props.cama.piso) === 0 ? 'Planta baja' : `Piso ${props.cama.piso}`));
 
 // Destinos de traslado: camas disponibles o reservadas para este paciente.
@@ -122,7 +132,7 @@ const destinos = computed(() =>
 );
 
 async function cargarPacientes() {
-  if (props.cama.estado !== 'disponible') return;
+  if (props.cama.estado !== 'disponible' || !puedeAsignar.value) return;
   try {
     pacientes.value = await camasApi.pacientesSinCama();
   } catch (e) {

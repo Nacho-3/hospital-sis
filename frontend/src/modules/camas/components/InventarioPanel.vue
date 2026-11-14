@@ -32,7 +32,7 @@
           <th>Insumo</th>
           <th class="num">Stock</th>
           <th class="num">Mínimo</th>
-          <th>Reponer</th>
+          <th v-if="puedeReponer">Reponer</th>
           <th></th>
         </tr>
       </thead>
@@ -47,7 +47,7 @@
             </td>
             <td class="num"><strong>{{ r.stock_actual }}</strong></td>
             <td class="num">{{ r.stock_minimo }}</td>
-            <td>
+            <td v-if="puedeReponer">
               <form class="inv__reponer" @submit.prevent="reponer(r)">
                 <input v-model.number="cantidades[r.id]" type="number" min="1" placeholder="Cant." />
                 <button class="btn" :disabled="!(cantidades[r.id] > 0)">Sumar</button>
@@ -56,7 +56,7 @@
             <td><button class="btn" @click="verMovimientos(r)">{{ abierto === r.id ? 'Ocultar' : 'Movimientos' }}</button></td>
           </tr>
           <tr v-if="abierto === r.id" class="inv__movs">
-            <td colspan="6">
+            <td :colspan="puedeReponer ? 6 : 5">
               <p v-if="!movimientos.length" class="tenue">Sin movimientos.</p>
               <ul>
                 <li v-for="m in movimientos" :key="m.id">
@@ -73,7 +73,7 @@
     </table>
     <p v-if="!filas.length && !error" class="tenue">No hay registros con ese filtro.</p>
 
-    <form class="tarjeta inv__alta" @submit.prevent="configurar">
+    <form v-if="puedeReponer" class="tarjeta inv__alta" @submit.prevent="configurar">
       <strong>Agregar insumo a un piso o cambiar su mínimo</strong>
       <div class="inv__alta-campos">
         <input v-model.number="alta.piso" type="number" placeholder="Piso" />
@@ -92,6 +92,10 @@
 <script setup>
 import { ref, reactive, computed, watch, onMounted } from 'vue';
 import { camasApi } from '../services/camasApi';
+import { puede, PERMISOS } from '../services/sesion';
+
+// Reponer y dar de alta insumos: solo con inventario:reponer.
+const puedeReponer = computed(() => puede(PERMISOS.REPONER_INVENTARIO));
 
 const props = defineProps({
   version: { type: Number, default: 0 },
