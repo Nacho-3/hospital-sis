@@ -108,3 +108,17 @@ CREATE UNIQUE INDEX IF NOT EXISTS cola_guardia_posicion_uidx
 
 CREATE INDEX IF NOT EXISTS cola_guardia_prioridad_idx
   ON cola_guardia (prioridad, posicion);
+
+-- Escenario de la HU 1.1: el turno de las 10:00 es del Dr. Silva.
+-- usuarios lo administra Identidad. Esta fila existe para poder reservar
+-- mientras ese modulo no da de alta medicos. No es una contraseña de acceso.
+INSERT INTO usuarios (email, password_hash, nombre, apellido)
+VALUES ('silva@hospital.test', 'escenario-hu-1.1', 'Andrés', 'Silva')
+ON CONFLICT (email) DO NOTHING;
+
+INSERT INTO usuario_rol (usuario_id, rol_id)
+SELECT u.id, r.id
+FROM usuarios u
+JOIN roles r ON r.codigo = 'MEDICO'
+WHERE u.email = 'silva@hospital.test'
+ON CONFLICT DO NOTHING;

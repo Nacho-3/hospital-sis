@@ -9,7 +9,7 @@ const Placeholder = { render: () => h('p', 'Pendiente de implementar.') };
 const routes = [
   { path: '/', component: { render: () => h('p', 'Hospital Information System') } },
   { path: '/identidad', component: Placeholder },
-  { path: '/admision', component: Placeholder },
+  { path: '/admision', component: () => import('./modules/admision/views/AgendaView.vue') },
   { path: '/atencion', component: Placeholder },
   { path: '/camas', component: () => import('./modules/camas/views/CamasView.vue') },
   { path: '/facturacion', component: () => import('./modules/facturacion/views/FacturacionView.vue') },

@@ -10,15 +10,10 @@ app.get('/health', (req, res) => res.json({ status: 'ok' }));
 
 // Cada responsable registra aca las rutas de su modulo, por ejemplo:
 // app.use('/api/identidad', require('./modules/identidad/rutas'));
-// app.use('/api/admision', require('./modules/admision/rutas'));
+app.use('/api/admision', require('./modules/admision/rutas'));
 // app.use('/api/atencion', require('./modules/atencion/rutas'));
-<<<<<<< HEAD
 app.use('/api/camas', require('./modules/camas/rutas'));
-// app.use('/api/facturacion', require('./modules/facturacion/rutas'));
-=======
-// app.use('/api/camas', require('./modules/camas/rutas'));
 app.use('/api/facturacion', require('./modules/facturacion/rutas'));
->>>>>>> facturacion/hu-2.1-cargos-automaticos
 
 // Manejo central de errores de negocio (ej: turno ya ocupado, transicion invalida)
 app.use((err, req, res, next) => {
