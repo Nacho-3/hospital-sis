@@ -10,7 +10,7 @@ const routes = [
   { path: '/', component: { render: () => h('p', 'Hospital Information System') } },
   { path: '/identidad', component: Placeholder },
   { path: '/admision', component: () => import('./modules/admision/views/AgendaView.vue') },
-  { path: '/atencion', component: Placeholder },
+  { path: '/atencion', component: () => import('./modules/atencion/views/atencionView.vue') },
   { path: '/camas', component: () => import('./modules/camas/views/CamasView.vue') },
   { path: '/facturacion', component: () => import('./modules/facturacion/views/FacturacionView.vue') },
 ];
