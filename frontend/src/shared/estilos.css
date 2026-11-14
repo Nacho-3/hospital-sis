@@ -352,6 +352,12 @@ textarea {
   background: var(--color-exito);
 }
 
+/* Agregado por Atención: layout de formularios y fila resaltada */
+.pila { display: flex; flex-direction: column; gap: var(--espacio-md); }
+.rejilla { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: var(--espacio-md); }
+.tabla tr.fila--peligro td { background: var(--color-peligro-fondo); }
+.tabla tr.fila--peligro td:first-child { box-shadow: inset 3px 0 0 var(--color-peligro); }
+
 @media (max-width: 800px) {
   .tabla {
     display: block;
