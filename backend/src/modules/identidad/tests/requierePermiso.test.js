@@ -1,4 +1,4 @@
-const { test, describe, beforeEach, mock } = require('node:test');
+const { test, describe, beforeEach, afterEach, mock } = require('node:test');
 const assert = require('node:assert/strict');
 
 const requierePermiso = require('../middlewares/requierePermiso');
@@ -10,7 +10,10 @@ describe('Middleware: requierePermiso [Nativo]', () => {
   beforeEach(() => {
     req = {};
     res = {};
-    next = mock.fn(); // Espía nativo
+    next = mock.fn();
+  });
+
+  afterEach(() => {
     mock.reset();
   });
 
@@ -36,7 +39,7 @@ describe('Middleware: requierePermiso [Nativo]', () => {
 
   test('debe lanzar PermisoDenegadoError si el usuario no tiene el permiso necesario', () => {
     const middleware = requierePermiso('usuario:crear');
-    req.usuario = { id: 1, permisos: ['cama:ver'] }; // No tiene 'usuario:crear'
+    req.usuario = { id: 1, permisos: ['cama:ver_mapa'] }; // Código real
 
     assert.throws(
       () => middleware(req, res, next),
@@ -50,7 +53,7 @@ describe('Middleware: requierePermiso [Nativo]', () => {
 
   test('debe llamar a next() si el usuario posee el permiso requerido', () => {
     const middleware = requierePermiso('usuario:crear');
-    req.usuario = { id: 1, permisos: ['cama:ver', 'usuario:crear'] };
+    req.usuario = { id: 1, permisos: ['cama:ver_mapa', 'usuario:crear'] };
 
     middleware(req, res, next);
 

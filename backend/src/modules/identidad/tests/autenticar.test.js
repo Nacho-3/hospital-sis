@@ -1,4 +1,4 @@
-const { test, describe, beforeEach, mock } = require('node:test');
+const { test, describe, beforeEach, afterEach, mock } = require('node:test');
 const assert = require('node:assert/strict');
 
 const autenticar = require('../middlewares/autenticar');
@@ -12,6 +12,9 @@ describe('Middleware: autenticar [Nativo]', () => {
     req = { headers: {} };
     res = {};
     next = mock.fn();
+  });
+
+  afterEach(() => {
     mock.reset();
   });
 
@@ -51,4 +54,12 @@ describe('Middleware: autenticar [Nativo]', () => {
     assert.strictEqual(next.mock.callCount(), 1);
   });
 
+  test('rechaza un token firmado con otra clave (sin mocks)', () => {
+    process.env.JWT_SECRET = 'secreto-solo-para-tests';
+    const falso = jwt.sign({ id: 1, permisos: ['usuario:crear'] }, 'otra-clave-cualquiera');
+    req.headers.authorization = `Bearer ${falso}`;
+    
+    assert.throws(() => autenticar(req, res, next), NoAutenticadoError);
+    assert.strictEqual(next.mock.callCount(), 0);
+  });
 });

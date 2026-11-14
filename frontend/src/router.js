@@ -7,8 +7,9 @@ import { createRouter, createWebHistory } from 'vue-router';
 const Placeholder = { render: () => h('p', 'Pendiente de implementar.') };
 
 const routes = [
-  { path: '/', component: { render: () => h('p', 'Hospital Information System') } },
-  { path: '/identidad', component: Placeholder },
+  { path: '/', component: () => import('./modules/identidad/views/InicioView.vue') },
+  { path: '/login', component: () => import('./modules/identidad/views/LoginView.vue')  },
+  { path: '/identidad/usuarios/nuevo', component: () => import('./modules/identidad/views/CrearUsuarioView.vue') },
   { path: '/admision', component: Placeholder },
   { path: '/atencion', component: Placeholder },
   { path: '/camas', component: () => import('./modules/camas/views/CamasView.vue') },
