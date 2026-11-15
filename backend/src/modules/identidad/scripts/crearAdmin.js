@@ -1,6 +1,7 @@
 require('dotenv').config();
 const pool = require('../../../shared/db/pool');
 const usuariosServicio = require('../servicio/usuarios.servicio');
+const rolesServicio = require('../servicio/roles.servicio');
 const { UsuarioExistenteError } = require('../dominio/errores');
 
 async function main() {
@@ -9,7 +10,7 @@ async function main() {
     throw new Error('Faltan ADMIN_EMAIL y ADMIN_PASSWORD en el .env');
   }
 
-  const roles = await usuariosServicio.listarRoles();
+  const roles = await rolesServicio.listarRoles();
   const rolAdmin = roles.find((r) => r.codigo === 'ADMINISTRADOR');
   if (!rolAdmin) {
     throw new Error('No existe el rol ADMINISTRADOR. Levantá el servidor una vez para aplicar el esquema.');
