@@ -1,10 +1,7 @@
 <template>
   <section class="pagina">
     <header class="tarjeta fac__cabecera">
-      <div>
-        <h1>Facturación y Administración</h1>
-        <p class="tenue">Cobertura vigente, cuenta activa y desglose de cargos por paciente.</p>
-      </div>
+      <h1>Facturación y Administración</h1>
       <form class="fac__buscador" @submit.prevent="consultar">
         <label class="campo">
           <span>ID de paciente</span>
@@ -17,7 +14,6 @@
     </header>
 
     <p v-if="error" class="fac__error" role="alert">{{ error }}</p>
-    <p v-else-if="!cuenta" class="tenue">Ingresá el ID de un paciente para ver su cobertura y su cuenta.</p>
 
     <template v-if="cuenta">
       <div class="fac__resumen">
@@ -34,7 +30,6 @@
           <p class="tenue">
             {{ cuenta.paciente }} (paciente #{{ cuenta.pacienteId }}) · {{ cuenta.cargos.length }} cargo(s)
           </p>
-          <p v-if="!cuenta.cuentaId" class="tenue">La cuenta se abre sola con el primer cargo.</p>
         </div>
 
         <div class="tarjeta">
@@ -177,9 +172,9 @@ function simularMedicacion({ insumoId, cantidad }) {
     await new Promise((resolver) => setTimeout(resolver, ESPERA_EVENTO_MS));
     await recargarCuenta();
     if (cuenta.value.cargos.length > cargosAntes) {
-      avisar('Evento procesado: se generaron los cargos de la medicación.');
+      avisar('Se generaron los cargos de la medicación.');
     } else {
-      avisar('El evento se publicó pero todavía no hay cargos nuevos. Si no aparecen, revisá la consola del backend.', 'alerta');
+      avisar('Todavía no se generaron los cargos de la medicación.', 'alerta');
     }
   });
 }
