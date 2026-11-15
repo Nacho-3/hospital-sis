@@ -2,10 +2,10 @@ const { test, describe, beforeEach, afterEach, mock } = require('node:test');
 const assert = require('node:assert/strict');
 
 const autenticar = require('../middlewares/autenticar');
+const authServicio = require('../servicio/auth.servicio');
 const { NoAutenticadoError } = require('../dominio/errores');
-const jwt = require('jsonwebtoken'); 
 
-describe('Middleware: autenticar [Nativo]', () => {
+describe('Middleware: autenticar', () => {
   let req, res, next;
 
   beforeEach(() => {
@@ -18,48 +18,58 @@ describe('Middleware: autenticar [Nativo]', () => {
     mock.reset();
   });
 
-  test('debe lanzar NoAutenticadoError si no viene la cabecera Authorization', () => {
-    assert.throws(
-      () => autenticar(req, res, next),
-      (err) => {
-        assert.ok(err instanceof NoAutenticadoError);
-        return true;
-      }
-    );
-    assert.strictEqual(next.mock.callCount(), 0);
+  test('sin cabecera Authorization: pasa un NoAutenticadoError a next', async () => {
+    await autenticar(req, res, next);
+
+    assert.equal(next.mock.callCount(), 1);
+    assert.ok(next.mock.calls[0].arguments[0] instanceof NoAutenticadoError);
+    assert.equal(req.usuario, undefined);
   });
 
-  test('debe lanzar NoAutenticadoError si la cabecera no empieza con "Bearer "', () => {
+  test('cabecera que no empieza con "Bearer ": pasa un NoAutenticadoError a next', async () => {
     req.headers.authorization = 'Basic token123';
 
-    assert.throws(
-      () => autenticar(req, res, next),
-      (err) => {
-        assert.ok(err instanceof NoAutenticadoError);
-        return true;
-      }
-    );
-    assert.strictEqual(next.mock.callCount(), 0);
+    await autenticar(req, res, next);
+
+    assert.equal(next.mock.callCount(), 1);
+    assert.ok(next.mock.calls[0].arguments[0] instanceof NoAutenticadoError);
   });
 
-  test('debe llamar a next() y asignar req.usuario si el token es válido', () => {
-    req.headers.authorization = 'Bearer tokenvalido.abc.123';
-    const usuarioMock = { id: 1, email: 'admin@correo.com', permisos: ['usuario:crear'] };
-    
-    mock.method(jwt, 'verify', () => usuarioMock);
+  test('si la sesión no es válida, pasa ese error a next y no deja a nadie en req', async () => {
+    req.headers.authorization = 'Bearer abc';
+    mock.method(authServicio, 'resolverSesion', async () => {
+      throw new NoAutenticadoError();
+    });
 
-    autenticar(req, res, next);
+    await autenticar(req, res, next);
 
-    assert.deepEqual(req.usuario, usuarioMock);
-    assert.strictEqual(next.mock.callCount(), 1);
+    assert.equal(authServicio.resolverSesion.mock.calls[0].arguments[0], 'abc');
+    assert.ok(next.mock.calls[0].arguments[0] instanceof NoAutenticadoError);
+    assert.equal(req.usuario, undefined);
   });
 
-  test('rechaza un token firmado con otra clave (sin mocks)', () => {
-    process.env.JWT_SECRET = 'secreto-solo-para-tests';
-    const falso = jwt.sign({ id: 1, permisos: ['usuario:crear'] }, 'otra-clave-cualquiera');
-    req.headers.authorization = `Bearer ${falso}`;
-    
-    assert.throws(() => autenticar(req, res, next), NoAutenticadoError);
-    assert.strictEqual(next.mock.callCount(), 0);
+  test('con una sesión válida deja el usuario en req y llama a next sin error', async () => {
+    req.headers.authorization = 'Bearer tokenvalido';
+    const sesion = { id: 1, email: 'admin@hospital.test', permisos: ['usuario:crear'] };
+    mock.method(authServicio, 'resolverSesion', async () => sesion);
+
+    await autenticar(req, res, next);
+
+    assert.deepEqual(req.usuario, sesion);
+    assert.equal(next.mock.callCount(), 1);
+    assert.equal(next.mock.calls[0].arguments.length, 0);
+  });
+
+  test('si falla la base de datos, el error pasa tal cual (no se convierte en 401)', async () => {
+    req.headers.authorization = 'Bearer tokenvalido';
+    const falla = new Error('conexión caída');
+    mock.method(authServicio, 'resolverSesion', async () => {
+      throw falla;
+    });
+
+    await autenticar(req, res, next);
+
+    assert.equal(next.mock.calls[0].arguments[0], falla);
+    assert.equal(req.usuario, undefined);
   });
 });

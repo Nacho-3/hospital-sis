@@ -9,9 +9,7 @@ const Placeholder = { render: () => h('p', 'Pendiente de implementar.') };
 const routes = [
   { path: '/', component: () => import('./modules/identidad/views/InicioView.vue') },
   { path: '/login', component: () => import('./modules/identidad/views/LoginView.vue') },
-  { path: '/identidad/usuarios/nuevo', component: () => import('./modules/identidad/views/CrearUsuarioView.vue') },
-  { path: '/identidad/usuarios', component: () => import('./modules/identidad/views/UsuariosView.vue') },
-  { path: '/identidad/roles', component: () => import('./modules/identidad/views/RolesView.vue') },
+  { path: '/identidad', component: () => import('./modules/identidad/views/IdentidadView.vue') },
   { path: '/admision', component: () => import('./modules/admision/views/AgendaView.vue') },
   { path: '/atencion', component: () => import('./modules/atencion/views/atencionView.vue') },
   { path: '/camas', component: () => import('./modules/camas/views/CamasView.vue') },

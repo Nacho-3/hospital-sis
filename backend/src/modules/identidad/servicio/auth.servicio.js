@@ -1,5 +1,6 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const { esIdValido } = require('../dominio/validaciones');
 const usuariosRepo = require('../repositorio/usuarios.repositorio');
 const {
   CredencialesInvalidasError,
@@ -29,7 +30,7 @@ async function login({ email, password } = {}) {
   const permisos = await usuariosRepo.obtenerPermisos(usuario.id);
 
   const token = jwt.sign(
-    { id: usuario.id, email: usuario.email, permisos },
+    { id: usuario.id, email: usuario.email },
     process.env.JWT_SECRET,
     { expiresIn: duracionToken }
   );
@@ -54,4 +55,18 @@ function verificarToken(token) {
   }
 }
 
-module.exports = { login, verificarToken };
+async function resolverSesion(token) {
+  const datos = verificarToken(token);
+  if (!esIdValido(datos.id)) {
+    throw new NoAutenticadoError();
+  }
+
+  const sesion = await usuariosRepo.obtenerSesion(datos.id);
+  if (!sesion || !sesion.activo) {
+    throw new NoAutenticadoError();
+  }
+
+  return { id: sesion.id, email: sesion.email, permisos: sesion.permisos };
+}
+
+module.exports = { login, verificarToken, resolverSesion };

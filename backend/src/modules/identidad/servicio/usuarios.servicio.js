@@ -1,3 +1,6 @@
+const bcrypt = require('bcryptjs');
+const usuariosRepo = require('../repositorio/usuarios.repositorio');
+const rolesRepo = require('../repositorio/roles.repositorio');
 const {
   DatosInvalidosError,
   OperacionNoPermitidaError,

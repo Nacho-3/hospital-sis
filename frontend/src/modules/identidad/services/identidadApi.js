@@ -40,3 +40,7 @@ export const identidadApi = {
   guardarPermisosDeRol: (id, permisos) =>
     pedir(`/roles/${id}/permisos`, { method: 'PUT', body: { permisos } }),
 };
+
+export function mensajeDeError(e) {
+  return e.status ? e.message : 'No se pudo conectar con el servidor';
+}

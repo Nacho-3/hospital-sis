@@ -72,4 +72,22 @@ async function cambiarActivo(id, activo) {
   return rows[0];
 }
 
-module.exports = { buscarPorEmail, obtenerPermisos, crearConRoles, listar, cambiarActivo };
+async function obtenerSesion(usuarioId) {
+  const { rows } = await pool.query(
+    `SELECT u.id, u.email, u.activo,
+            COALESCE(
+              array_agg(DISTINCT p.codigo::text) FILTER (WHERE p.id IS NOT NULL),
+              '{}'
+            ) AS permisos
+     FROM usuarios u
+     LEFT JOIN usuario_rol ur ON ur.usuario_id = u.id
+     LEFT JOIN rol_permiso rp ON rp.rol_id = ur.rol_id
+     LEFT JOIN permisos p     ON p.id = rp.permiso_id
+     WHERE u.id = $1
+     GROUP BY u.id`,
+    [usuarioId]
+  );
+  return rows[0];
+}
+
+module.exports = { buscarPorEmail, obtenerPermisos, crearConRoles, listar, cambiarActivo, obtenerSesion };
