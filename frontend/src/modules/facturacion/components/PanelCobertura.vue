@@ -22,7 +22,6 @@
       </label>
       <button class="btn" :disabled="ocupado || seleccion === cobertura.id">Guardar</button>
     </form>
-    <p class="tenue">El cambio vale para los cargos nuevos: los ya generados no se recalculan.</p>
   </div>
 </template>
 

@@ -1,9 +1,6 @@
 <template>
   <div class="tarjeta">
     <h2 class="cargo__titulo">Registrar cargo</h2>
-    <p class="tenue">
-      El backend reparte el monto según la cobertura vigente del paciente y guarda un cargo por destinatario.
-    </p>
 
     <form class="cargo__form" @submit.prevent="enviar">
       <label class="campo">
@@ -57,10 +54,6 @@
       </button>
     </form>
 
-    <p v-if="origen === 'medicacion'" class="tenue">
-      Publica el evento MedicacionAdministrada igual que lo hará Atención: Facturación genera el cargo
-      con el precio vigente del insumo y Camas descuenta el stock si el paciente está internado.
-    </p>
   </div>
 </template>
 
