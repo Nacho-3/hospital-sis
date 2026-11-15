@@ -15,6 +15,10 @@ function listarPermisos() {
   return permisosRepo.listar();
 }
 
+function listarRoles() {
+  return rolesRepo.listar();
+}
+
 async function crear({ codigo, nombre } = {}) {
   const codigoLimpio = textoObligatorio(codigo, 'codigo', 40).toUpperCase();
   if (!formatoCodigo.test(codigoLimpio)) {
@@ -58,4 +62,4 @@ async function reemplazarPermisos(id, permisos) {
   return { rolId, permisos: permisosIds };
 }
 
-module.exports = { listarPermisos, crear, obtenerPermisos, reemplazarPermisos };
+module.exports = { listarPermisos, listarRoles, crear, obtenerPermisos, reemplazarPermisos };

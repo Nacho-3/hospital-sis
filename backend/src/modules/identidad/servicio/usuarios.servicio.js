@@ -46,10 +46,6 @@ async function crear({ email, nombre, apellido, password, roles } = {}) {
   });
 }
 
-function listarRoles() {
-  return rolesRepo.listar();
-}
-
 function listar() {
   return usuariosRepo.listar();
 }
@@ -72,4 +68,4 @@ async function reactivar(id) {
   return cambiarActivo(validarId(id), true);
 }
 
-module.exports = { crear, listarRoles, listar, desactivar, reactivar };
+module.exports = { crear, listar, desactivar, reactivar };
