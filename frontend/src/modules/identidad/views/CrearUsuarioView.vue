@@ -1,43 +1,52 @@
 <template>
-  <section class="usuario-nuevo">
+  <section class="pagina pila">
     <h2>Crear usuario</h2>
 
-    <p v-if="!puedeCrear" role="alert">No tenés permiso para crear usuarios.</p>
+    <p v-if="!puedeCrear" class="aviso aviso--error" role="alert">No tenés permiso para crear usuarios.</p>
 
-    <form v-else class="usuario-nuevo__form" @submit.prevent="crear">
-      <label>
-        Email
-        <input v-model="email" type="email" autocomplete="off" required />
-      </label>
-      <label>
-        Nombre
-        <input v-model="nombre" type="text" maxlength="80" required />
-      </label>
-      <label>
-        Apellido
-        <input v-model="apellido" type="text" maxlength="80" required />
-      </label>
-      <label>
-        Contraseña(mínimo 8 caracteres)
-        <input v-model="password" type="password" minlength="8" maxlength="72" autocomplete="new-password" required />
-      </label>
+    <div v-else class="tarjeta">
+      <form class="pila" @submit.prevent="crear">
+        <div class="campo">
+          <label for="nuevo-email">Email</label>
+          <input id="nuevo-email" v-model="email" type="email" autocomplete="off" required />
+        </div>
 
-      <fieldset>
-        <legend>Roles</legend>
-        <p v-if="cargandoRoles">Cargando roles...</p>
-        <label v-for="rol in roles" :key="rol.id" class="usuario-nuevo__rol">
-          <input v-model="rolesSeleccionados" type="checkbox" :value="rol.id" />
-          {{ rol.nombre }}
-        </label>
-      </fieldset>
+        <div class="campo">
+          <label for="nuevo-nombre">Nombre</label>
+          <input id="nuevo-nombre" v-model="nombre" type="text" maxlength="80" required />
+        </div>
 
-      <p v-if="error" class="usuario-nuevo__error" role="alert">{{ error }}</p>
-      <p v-if="exito" class="usuario-nuevo__exito" role="status">{{ exito }}</p>
+        <div class="campo">
+          <label for="nuevo-apellido">Apellido</label>
+          <input id="nuevo-apellido" v-model="apellido" type="text" maxlength="80" required />
+        </div>
 
-      <button type="submit" :disabled="enviando">
-        {{ enviando ? 'Creando...' : 'Crear usuario' }}
-      </button>
-    </form>
+        <div class="campo">
+          <label for="nuevo-password">Contraseña (mínimo 8 caracteres)</label>
+          <input id="nuevo-password" v-model="password" type="password" minlength="8" maxlength="72" autocomplete="new-password" required />
+        </div>
+
+        <fieldset style="border: 1px solid var(--color-borde); border-radius: var(--radio-sm); padding: var(--espacio-md);">
+          <legend style="font-weight: 600; padding: 0 var(--espacio-xs); color: var(--color-texto);">Roles</legend>
+          <p v-if="cargandoRoles" class="tenue" style="margin-top: var(--espacio-xs);">Cargando roles...</p>
+          <div class="pila" style="margin-top: var(--espacio-sm); gap: var(--espacio-sm);">
+            <label v-for="rol in roles" :key="rol.id" style="display: flex; align-items: center; gap: var(--espacio-sm); cursor: pointer; font-size: 0.875rem; color: var(--color-texto);">
+              <input v-model="rolesSeleccionados" type="checkbox" :value="rol.id" />
+              {{ rol.nombre }}
+            </label>
+          </div>
+        </fieldset>
+
+        <p v-if="error" class="aviso aviso--error" role="alert">{{ error }}</p>
+        <p v-if="exito" class="aviso" role="status">{{ exito }}</p>
+
+        <div>
+          <button type="submit" class="btn btn--primario" :disabled="enviando">
+            {{ enviando ? 'Creando...' : 'Crear usuario' }}
+          </button>
+        </div>
+      </form>
+    </div>
   </section>
 </template>
 
@@ -120,44 +129,3 @@ onMounted(() => {
   if (puedeCrear.value) cargarRoles();
 });
 </script>
-
-<style scoped>
-.usuario-nuevo__form {
-  margin-top: var(--espacio-md);
-  display: flex;
-  flex-direction: column;
-  gap: var(--espacio-md);
-}
-
-.aviso--margen {
-  margin-top: var(--espacio-md);
-}
-
-.usuario-nuevo__fieldset {
-  border: 1px solid var(--color-borde);
-  border-radius: var(--radio-sm);
-  padding: var(--espacio-md);
-}
-
-.usuario-nuevo__legend {
-  padding: 0 var(--espacio-xs);
-  font-weight: 600;
-  color: var(--color-texto);
-}
-
-.usuario-nuevo__roles-lista {
-  display: flex;
-  flex-direction: column;
-  gap: var(--espacio-sm);
-  margin-top: var(--espacio-xs);
-}
-
-.usuario-nuevo__rol-item {
-  display: flex;
-  align-items: center;
-  gap: var(--espacio-sm);
-  cursor: pointer;
-  font-size: 0.9rem;
-  color: var(--color-texto);
-}
-</style>

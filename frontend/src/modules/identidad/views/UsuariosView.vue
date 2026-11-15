@@ -1,17 +1,19 @@
 <template>
-  <section class="pagina">
+  <section class="pagina pila">
     <h2>Usuarios</h2>
 
-    <p v-if="!puedeVer" class="aviso" role="alert">No tenés permiso para ver los usuarios.</p>
+    <p v-if="!puedeVer" class="aviso aviso--error" role="alert">No tenés permiso para ver los usuarios.</p>
 
     <template v-else>
-      <p v-if="error" class="aviso" role="alert">{{ error }}</p>
+      <p v-if="error" class="aviso aviso--error" role="alert">{{ error }}</p>
       <p v-if="exito" class="aviso" role="status">{{ exito }}</p>
 
-      <div class="tarjeta">
-        <router-link v-if="puedeCrear" to="/identidad/usuarios/nuevo" class="btn btn--primario">
-          Nuevo usuario
-        </router-link>
+      <div class="tarjeta pila">
+        <div>
+          <router-link v-if="puedeCrear" to="/identidad/usuarios/nuevo" class="btn btn--primario">
+            Nuevo usuario
+          </router-link>
+        </div>
 
         <p v-if="cargando && usuarios.length === 0" class="tenue">Cargando usuarios...</p>
 
@@ -26,14 +28,14 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="u in usuarios" :key="u.id">
+            <tr v-for="u in usuarios" :key="u.id" :class="{ 'fila--peligro': !u.activo }">
               <td>
                 {{ u.apellido }}, {{ u.nombre }}
                 <span v-if="u.id === miId" class="tenue">(vos)</span>
               </td>
               <td>{{ u.email }}</td>
               <td>
-                <span v-for="rol in u.roles" :key="rol" class="badge">{{ rol }}</span>
+                <span v-for="rol in u.roles" :key="rol" class="badge" style="margin-right: 4px;">{{ rol }}</span>
                 <span v-if="u.roles.length === 0" class="tenue">Sin roles</span>
               </td>
               <td>{{ u.activo ? 'Activo' : 'Inactivo' }}</td>
