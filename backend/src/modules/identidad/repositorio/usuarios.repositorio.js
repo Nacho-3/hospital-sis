@@ -48,4 +48,28 @@ async function crearConRoles({ email, nombre, apellido, passwordHash, rolesIds }
   }
 }
 
-module.exports = { buscarPorEmail, obtenerPermisos, crearConRoles };
+async function listar() {
+  const { rows } = await pool.query(
+    `SELECT u.id, u.email, u.nombre, u.apellido, u.activo, u.creado_en,
+            COALESCE(
+              array_agg(r.nombre::text ORDER BY r.nombre) FILTER (WHERE r.id IS NOT NULL),
+              '{}'
+            ) AS roles
+     FROM usuarios u
+     LEFT JOIN usuario_rol ur ON ur.usuario_id = u.id
+     LEFT JOIN roles r        ON r.id = ur.rol_id
+     GROUP BY u.id
+     ORDER BY u.apellido, u.nombre`
+  );
+  return rows;
+}
+
+async function cambiarActivo(id, activo) {
+  const { rows } = await pool.query(
+    'UPDATE usuarios SET activo = $2 WHERE id = $1 RETURNING id, email, activo',
+    [id, activo]
+  );
+  return rows[0];
+}
+
+module.exports = { buscarPorEmail, obtenerPermisos, crearConRoles, listar, cambiarActivo };

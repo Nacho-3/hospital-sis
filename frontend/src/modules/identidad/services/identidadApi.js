@@ -29,4 +29,14 @@ export const identidadApi = {
   login: (email, password) => pedir('/auth/login', { method: 'POST', body: { email, password } }),
   listarRoles: () => pedir('/roles'),
   crearUsuario: (datos) => pedir('/usuarios', { method: 'POST', body: datos }),
+
+  listarUsuarios: () => pedir('/usuarios'),
+  desactivarUsuario: (id) => pedir(`/usuarios/${id}/desactivar`, { method: 'POST' }),
+  reactivarUsuario: (id) => pedir(`/usuarios/${id}/reactivar`, { method: 'POST' }),
+
+  listarPermisos: () => pedir('/permisos'),
+  crearRol: (datos) => pedir('/roles', { method: 'POST', body: datos }),
+  permisosDeRol: (id) => pedir(`/roles/${id}/permisos`),
+  guardarPermisosDeRol: (id, permisos) =>
+    pedir(`/roles/${id}/permisos`, { method: 'PUT', body: { permisos } }),
 };

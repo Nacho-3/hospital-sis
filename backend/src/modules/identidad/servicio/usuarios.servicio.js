@@ -1,22 +1,13 @@
-const bcrypt = require('bcryptjs');
-const usuariosRepo = require('../repositorio/usuarios.repositorio');
-const rolesRepo = require('../repositorio/roles.repositorio');
-const { DatosInvalidosError } = require('../dominio/errores');
+const {
+  DatosInvalidosError,
+  OperacionNoPermitidaError,
+  UsuarioInexistenteError,
+} = require('../dominio/errores');
+const { textoObligatorio, validarId } = require('../dominio/validaciones');
 
 const largoMinPassword = 8;
 const largoMaxPassword = 12;
 const formatoEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-function textoObligatorio(valor, campo, largoMaximo) {
-  if (typeof valor !== 'string' || !valor.trim()) {
-    throw new DatosInvalidosError(`El campo ${campo} es obligatorio`);
-  }
-  const limpio = valor.trim();
-  if (limpio.length > largoMaximo) {
-    throw new DatosInvalidosError(`El campo ${campo} no puede superar los ${largoMaximo} caracteres`);
-  }
-  return limpio;
-}
 
 async function crear({ email, nombre, apellido, password, roles } = {}) {
   const emailLimpio = textoObligatorio(email, 'email', 160).toLowerCase();
@@ -56,4 +47,26 @@ function listarRoles() {
   return rolesRepo.listar();
 }
 
-module.exports = { crear, listarRoles };
+function listar() {
+  return usuariosRepo.listar();
+}
+
+async function cambiarActivo(id, activo) {
+  const usuario = await usuariosRepo.cambiarActivo(id, activo);
+  if (!usuario) throw new UsuarioInexistenteError();
+  return usuario;
+}
+
+async function desactivar(id, usuarioActualId) {
+  const idUsuario = validarId(id);
+  if (idUsuario === usuarioActualId) {
+    throw new OperacionNoPermitidaError('No podés desactivar tu propio usuario');
+  }
+  return cambiarActivo(idUsuario, false);
+}
+
+async function reactivar(id) {
+  return cambiarActivo(validarId(id), true);
+}
+
+module.exports = { crear, listarRoles, listar, desactivar, reactivar };
