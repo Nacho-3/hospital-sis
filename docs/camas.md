@@ -103,9 +103,30 @@ Los eventos se publican **después del COMMIT**, para que nadie reaccione a algo
 
 Errores: `{ error, mensaje }` con 400 (datos inválidos), 404, 409 (concurrencia, cama reservada, paciente ya internado, capacidad, stock) o 422 (transición inválida).
 
+## Permisos
+
+Todas las rutas de `/api/camas` piden un usuario autenticado (`Authorization: Bearer <token>` de Identidad) y el permiso de la matriz. Los middlewares son los de Identidad (`autenticar`, `requierePermiso`); los códigos están juntos en `modules/camas/rutas/permisos.js`.
+
+| Permiso | Roles | Rutas |
+|---|---|---|
+| `cama:ver_mapa` | Administrativo de piso, Personal de limpieza | `GET /`, `GET /habitaciones`, `GET /:id`, `GET /:id/historial` |
+| `cama:asignar` | Administrativo de piso | asignar, reservar, cancelar reserva, liberar, trasladar, `GET /pacientes-sin-cama`, mantenimiento, alta de camas y habitaciones |
+| `cama:confirmar_limpieza` | Personal de limpieza | `POST /:id/finalizar-limpieza` |
+| `inventario:ver` | Gestor de inventario | `GET /inventario`, `GET /inventario/insumos`, `GET /inventario/:id/movimientos` |
+| `inventario:reponer` | Gestor de inventario | `POST /inventario/:id/reponer`, `POST /inventario`, `POST /inventario/insumos` |
+
+La matriz no define permisos para mantenimiento, alta de camas y habitaciones, ni alta de insumos: se asignaron al rol que hace esa tarea (`cama:asignar` y `inventario:reponer`).
+
+**Canal en vivo.** `EventSource` no puede mandar headers, así que `GET /en-vivo` acepta el token como `?token=`. Pide `cama:ver_mapa` o `inventario:ver`, y a cada usuario le llegan solo los eventos de su permiso: `StockBajoDetectado` con `inventario:ver`, el resto con `cama:ver_mapa`.
+
+**Frontend.** El token se lee de `localStorage` con la clave `token` (`services/sesion.js`). Las pestañas y botones se muestran según los permisos que trae el token; el backend vuelve a controlarlos. Mientras Identidad no tenga pantalla de login, la vista de Camas muestra un login propio que llama a `POST /api/identidad/auth/login` y guarda el token con esa misma clave.
+
+Errores: 401 `NO_AUTENTICADO` sin token o con token vencido, 403 `PERMISO_DENEGADO` sin el permiso.
+
 ## Tests
 
 - `estados.test.js` y `dias.test.js`: sin base, corren siempre.
+- `permisos.test.js`: 401 y 403 de cada rol, sin base; el caso permitido corre con `DB_TESTS=1`.
 - `concurrencia.db.test.js`, `movimientos.db.test.js` e `inventario.db.test.js`: contra PostgreSQL. Crean sus datos y los borran al terminar. Para correrlos desde `backend/`:
 
 ```powershell

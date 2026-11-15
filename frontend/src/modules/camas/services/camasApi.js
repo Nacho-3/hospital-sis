@@ -1,13 +1,22 @@
 // Cliente HTTP del modulo de Camas. Vite reenvia /api al backend (vite.config.js).
+// Cada pedido lleva el token de Identidad en el header Authorization.
+import { sesion, cerrarSesion } from './sesion';
+
 const BASE = '/api/camas';
 
 async function pedir(ruta, { method = 'GET', body } = {}) {
+  const headers = {};
+  if (body) headers['Content-Type'] = 'application/json';
+  if (sesion.token) headers.Authorization = `Bearer ${sesion.token}`;
+
   const res = await fetch(`${BASE}${ruta}`, {
     method,
-    headers: body ? { 'Content-Type': 'application/json' } : undefined,
+    headers,
     body: body ? JSON.stringify(body) : undefined,
   });
   const datos = await res.json().catch(() => null);
+  // Token vencido o invalido: se cierra la sesion y la vista pide login.
+  if (res.status === 401) cerrarSesion();
   if (!res.ok) {
     const error = new Error(datos?.mensaje || `Error ${res.status}`);
     error.codigo = datos?.error;
@@ -59,8 +68,9 @@ export const camasApi = {
 // Canal en vivo (Server-Sent Events). EventSource reconecta solo si se corta.
 // onConexion(true|false) avisa cuando se conecta o se cae.
 // Devuelve una funcion para cerrarlo.
+// EventSource no puede mandar headers: el token va en la URL.
 export function escucharEnVivo(manejadores, onConexion = () => {}) {
-  const fuente = new EventSource(`${BASE}/en-vivo`);
+  const fuente = new EventSource(`${BASE}/en-vivo?token=${encodeURIComponent(sesion.token || '')}`);
   fuente.onopen = () => onConexion(true);
   fuente.onerror = () => onConexion(false);
   for (const [evento, fn] of Object.entries(manejadores)) {
