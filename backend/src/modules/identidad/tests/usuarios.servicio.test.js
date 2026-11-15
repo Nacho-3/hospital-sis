@@ -97,16 +97,4 @@ describe('Usuarios Servicio [Nativo]', () => {
     });
   });
 
-  describe('listarRoles()', () => {
-    test('debe llamar al repositorio de roles y devolver la lista', async () => {
-      const rolesMock = [{ id: 1, codigo: 'ADMINISTRADOR', nombre: 'Administrador' }];
-      mock.method(rolesRepo, 'listar', async () => rolesMock);
-
-      const resultado = await usuariosServicio.listarRoles();
-
-      assert.deepEqual(resultado, rolesMock);
-      assert.strictEqual(rolesRepo.listar.mock.callCount(), 1);
-    });
-  });
-
 });

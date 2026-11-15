@@ -1,5 +1,5 @@
 const pool = require('../../../shared/db/pool');
-const { RolExistenteError, PermisoInexistenteError } = require('../dominio/errores');
+const {  PermisoInexistenteError } = require('../dominio/errores');
 
 async function listar() {
   const { rows } = await pool.query('SELECT id, codigo, nombre FROM roles ORDER BY nombre');
@@ -11,18 +11,6 @@ async function buscarPorId(id) {
   return rows[0];
 }
 
-async function crear({ codigo, nombre }) {
-  try {
-    const { rows } = await pool.query(
-      'INSERT INTO roles (codigo, nombre) VALUES ($1, $2) RETURNING id, codigo, nombre',
-      [codigo, nombre]
-    );
-    return rows[0];
-  } catch (err) {
-    if (err.code === '23505') throw new RolExistenteError();
-    throw err;
-  }
-}
 
 async function permisosDeRol(rolId) {
   const { rows } = await pool.query(
@@ -52,4 +40,4 @@ async function reemplazarPermisos(rolId, permisosIds) {
   }
 }
 
-module.exports = { listar, buscarPorId, crear, permisosDeRol, reemplazarPermisos };
+module.exports = { listar, buscarPorId, permisosDeRol, reemplazarPermisos };

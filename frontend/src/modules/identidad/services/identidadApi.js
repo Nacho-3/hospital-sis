@@ -35,7 +35,6 @@ export const identidadApi = {
   reactivarUsuario: (id) => pedir(`/usuarios/${id}/reactivar`, { method: 'POST' }),
 
   listarPermisos: () => pedir('/permisos'),
-  crearRol: (datos) => pedir('/roles', { method: 'POST', body: datos }),
   permisosDeRol: (id) => pedir(`/roles/${id}/permisos`),
   guardarPermisosDeRol: (id, permisos) =>
     pedir(`/roles/${id}/permisos`, { method: 'PUT', body: { permisos } }),

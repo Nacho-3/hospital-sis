@@ -6,12 +6,7 @@ const roles = ref([]);
 const permisos = ref([]);
 const rolElegidoId = ref(null);
 const seleccionados = ref([]);
-
-const codigoNuevo = ref('');
-const nombreNuevo = ref('');
-
 const cargando = ref(false);
-const creando = ref(false);
 const guardando = ref(false);
 const error = ref('');
 const exito = ref('');
@@ -58,26 +53,6 @@ async function elegirRol(valor) {
   }
 }
 
-async function crearRol() {
-  error.value = '';
-  exito.value = '';
-  creando.value = true;
-  try {
-    const respuesta = await identidadApi.crearRol({
-      codigo: codigoNuevo.value,
-      nombre: nombreNuevo.value,
-    });
-    exito.value = `Rol creado: ${respuesta.rol.nombre}. Ahora elegilo en la lista para asignarle permisos.`;
-    codigoNuevo.value = '';
-    nombreNuevo.value = '';
-    roles.value = await identidadApi.listarRoles();
-  } catch (e) {
-    error.value = mensajeDeError(e);
-  } finally {
-    creando.value = false;
-  }
-}
-
 async function guardar() {
   if (rolElegidoId.value === null) return;
   error.value = '';
@@ -102,23 +77,6 @@ onMounted(cargarBase);
     <p v-if="error" class="aviso" role="alert">{{ error }}</p>
     <p v-if="exito" class="aviso" role="status">{{ exito }}</p>
     <p v-if="cargando" class="tenue">Cargando...</p>
-
-    <div class="tarjeta">
-      <h3>Crear rol</h3>
-      <form @submit.prevent="crearRol">
-        <div class="campo">
-          <label for="rol-codigo">Código (por ejemplo AUDITOR)</label>
-          <input id="rol-codigo" v-model="codigoNuevo" type="text" maxlength="40" required />
-        </div>
-        <div class="campo">
-          <label for="rol-nombre">Nombre</label>
-          <input id="rol-nombre" v-model="nombreNuevo" type="text" maxlength="80" required />
-        </div>
-        <button type="submit" class="btn btn--primario" :disabled="creando">
-          {{ creando ? 'Creando...' : 'Crear rol' }}
-        </button>
-      </form>
-    </div>
 
     <div class="tarjeta">
       <h3>Permisos de un rol</h3>
