@@ -42,7 +42,7 @@
           <td class="num"><strong>{{ formatearMonto(cargo.monto) }}</strong></td>
         </tr>
         <tr v-if="visibles.length === 0">
-          <td colspan="6" class="tenue cargos__vacio">No hay cargos para este filtro en la cuenta activa.</td>
+          <td colspan="6" class="tenue cargos__vacio">No hay cargos.</td>
         </tr>
       </tbody>
     </table>
