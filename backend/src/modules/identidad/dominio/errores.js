@@ -36,6 +36,36 @@ class RolInexistenteError extends DomainError {
   }
 }
 
+class UsuarioInexistenteError extends DomainError {
+  constructor() {
+    super('El usuario no existe', { code: 'USUARIO_INEXISTENTE', status: 404 });
+  }
+}
+
+class RolNoEncontradoError extends DomainError {
+  constructor() {
+    super('El rol no existe', { code: 'ROL_NO_ENCONTRADO', status: 404 });
+  }
+}
+
+class RolExistenteError extends DomainError {
+  constructor() {
+    super('Ya existe un rol con ese código', { code: 'ROL_YA_EXISTE', status: 409 });
+  }
+}
+
+class PermisoInexistenteError extends DomainError {
+  constructor() {
+    super('Alguno de los permisos no existe', { code: 'PERMISO_INEXISTENTE', status: 400 });
+  }
+}
+
+class OperacionNoPermitidaError extends DomainError {
+  constructor(message) {
+    super(message, { code: 'OPERACION_NO_PERMITIDA', status: 422 });
+  }
+}
+
 module.exports = {
   CredencialesInvalidasError,
   DatosInvalidosError,
@@ -43,4 +73,9 @@ module.exports = {
   PermisoDenegadoError,
   UsuarioExistenteError,
   RolInexistenteError,
+  UsuarioInexistenteError,
+  RolNoEncontradoError,
+  RolExistenteError,
+  PermisoInexistenteError,
+  OperacionNoPermitidaError,
 };

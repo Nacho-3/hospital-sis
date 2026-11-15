@@ -1,17 +1,22 @@
-const { verificarToken } = require('../servicio/auth.servicio');
+const authServicio = require('../servicio/auth.servicio');
 const { NoAutenticadoError } = require('../dominio/errores');
 
-const prefijo = 'Bearer ';
+const PREFIJO = 'Bearer ';
 
-function autenticar(req, res, next) {
-  const cabecera = req.headers.authorization;
-
-  if (!cabecera || !cabecera.startsWith(prefijo)) {
-    throw new NoAutenticadoError();
+async function autenticar(req, res, next) {
+  let usuario;
+  try {
+    const cabecera = req.headers.authorization;
+    if (!cabecera || !cabecera.startsWith(PREFIJO)) {
+      throw new NoAutenticadoError();
+    }
+    const token = cabecera.slice(PREFIJO.length).trim();
+    usuario = await authServicio.resolverSesion(token);
+  } catch (err) {
+    return next(err);
   }
 
-  const token = cabecera.slice(prefijo.length).trim();
-  req.usuario = verificarToken(token);
+  req.usuario = usuario;
   next();
 }
 
