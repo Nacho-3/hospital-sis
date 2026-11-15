@@ -1,7 +1,7 @@
 <script setup>
-import { computed, onMounted } from 'vue';
+import { computed } from 'vue';
 import { useRouter } from 'vue-router';
-import { haySesion, nombreCompleto, tienePermiso, cerrarSesion } from '../services/sesion.js';
+import { haySesion, nombreCompleto, tienePermiso } from '../services/sesion.js';
 
 const router = useRouter();
 
@@ -12,15 +12,6 @@ const puedeAdministrar = computed(
 function irAIdentidad() {
   router.push('/identidad');
 }
-
-function salir() {
-  cerrarSesion();
-  router.replace('/login');
-}
-
-onMounted(() => {
-  if (!haySesion.value) router.replace('/login');
-});
 </script>
 
 <template>
@@ -32,7 +23,6 @@ onMounted(() => {
       <button v-if="puedeAdministrar" type="button" class="btn btn--primario" @click="irAIdentidad">
         Usuarios y roles
       </button>
-      <button type="button" class="btn" @click="salir">Cerrar sesión</button>
     </div>
   </section>
 </template>
