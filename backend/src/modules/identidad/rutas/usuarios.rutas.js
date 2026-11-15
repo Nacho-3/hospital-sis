@@ -42,3 +42,5 @@ router.post('/:id/reactivar', autenticar, requierePermiso('usuario:desactivar'),
     next(err);
   }
 });
+
+module.exports = router;
