@@ -119,7 +119,7 @@ La matriz no define permisos para mantenimiento, alta de camas y habitaciones, n
 
 **Canal en vivo.** `EventSource` no puede mandar headers, así que `GET /en-vivo` acepta el token como `?token=`. Pide `cama:ver_mapa` o `inventario:ver`, y a cada usuario le llegan solo los eventos de su permiso: `StockBajoDetectado` con `inventario:ver`, el resto con `cama:ver_mapa`.
 
-**Frontend.** El token se lee de `localStorage` con la clave `token` (`services/sesion.js`). Las pestañas y botones se muestran según los permisos que trae el token; el backend vuelve a controlarlos. Mientras Identidad no tenga pantalla de login, la vista de Camas muestra un login propio que llama a `POST /api/identidad/auth/login` y guarda el token con esa misma clave.
+**Frontend.** La sesión es la de Identidad (`modules/identidad/services/sesion.js`): el login, el cierre de sesión y la vuelta a `/login` los maneja ese módulo. `camas/services/sesion.js` solo toma de ahí el token, para mandarlo en cada pedido, y los permisos, para mostrar las pestañas y botones que el usuario puede usar; el backend vuelve a controlarlos. Si el backend responde 401, Camas cierra la sesión y la app vuelve al login.
 
 Errores: 401 `NO_AUTENTICADO` sin token o con token vencido, 403 `PERMISO_DENEGADO` sin el permiso.
 
