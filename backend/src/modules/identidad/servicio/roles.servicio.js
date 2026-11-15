@@ -5,9 +5,8 @@ const {
   RolNoEncontradoError,
   OperacionNoPermitidaError,
 } = require('../dominio/errores');
-const { esIdValido, validarId, textoObligatorio } = require('../dominio/validaciones');
+const { esIdValido, validarId } = require('../dominio/validaciones');
 
-const formatoCodigo = /^[A-Z][A-Z0-9_]{2,39}$/;
 const rolProtegido = 'ADMINISTRADOR';
 const permisoCritico = 'rol:administrar';
 
@@ -17,17 +16,6 @@ function listarPermisos() {
 
 function listarRoles() {
   return rolesRepo.listar();
-}
-
-async function crear({ codigo, nombre } = {}) {
-  const codigoLimpio = textoObligatorio(codigo, 'codigo', 40).toUpperCase();
-  if (!formatoCodigo.test(codigoLimpio)) {
-    throw new DatosInvalidosError(
-      'El código debe tener entre 3 y 40 caracteres: letras, números y guión bajo, empezando con una letra'
-    );
-  }
-  const nombreLimpio = textoObligatorio(nombre, 'nombre', 80);
-  return rolesRepo.crear({ codigo: codigoLimpio, nombre: nombreLimpio });
 }
 
 async function obtenerPermisos(id) {
@@ -62,4 +50,4 @@ async function reemplazarPermisos(id, permisos) {
   return { rolId, permisos: permisosIds };
 }
 
-module.exports = { listarPermisos, listarRoles, crear, obtenerPermisos, reemplazarPermisos };
+module.exports = { listarPermisos, listarRoles, obtenerPermisos, reemplazarPermisos };

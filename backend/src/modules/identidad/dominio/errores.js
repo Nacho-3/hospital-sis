@@ -48,11 +48,6 @@ class RolNoEncontradoError extends DomainError {
   }
 }
 
-class RolExistenteError extends DomainError {
-  constructor() {
-    super('Ya existe un rol con ese código', { code: 'ROL_YA_EXISTE', status: 409 });
-  }
-}
 
 class PermisoInexistenteError extends DomainError {
   constructor() {
@@ -75,7 +70,6 @@ module.exports = {
   RolInexistenteError,
   UsuarioInexistenteError,
   RolNoEncontradoError,
-  RolExistenteError,
   PermisoInexistenteError,
   OperacionNoPermitidaError,
 };

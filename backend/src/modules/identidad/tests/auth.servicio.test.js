@@ -3,10 +3,9 @@ const assert = require('node:assert/strict');
 
 const authServicio = require('../servicio/auth.servicio');
 const usuariosRepo = require('../repositorio/usuarios.repositorio');
-const { CredencialesInvalidasError, DatosInvalidosError } = require('../dominio/errores');
+const { CredencialesInvalidasError, DatosInvalidosError, NoAutenticadoError } = require('../dominio/errores');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { NoAutenticadoError } = require('../dominio/errores');
 
 const SECRETO = 'secreto-solo-para-tests';
 process.env.JWT_SECRET = SECRETO;

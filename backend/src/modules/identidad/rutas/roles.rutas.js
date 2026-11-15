@@ -14,15 +14,6 @@ router.get('/', autenticar, requierePermiso('usuario:crear'), async (req, res, n
   }
 });
 
-router.post('/', autenticar, requierePermiso('rol:administrar'), async (req, res, next) => {
-  try {
-    const rol = await rolesServicio.crear(req.body);
-    res.status(201).json({ mensaje: 'Rol creado exitosamente', rol });
-  } catch (err) {
-    next(err);
-  }
-});
-
 router.get('/:id/permisos', autenticar, requierePermiso('rol:administrar'), async (req, res, next) => {
   try {
     res.json(await rolesServicio.obtenerPermisos(req.params.id));

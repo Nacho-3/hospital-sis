@@ -79,8 +79,8 @@ INSERT INTO permisos (codigo, descripcion) VALUES
   ('usuario:crear', 'Crear usuarios y asignarles roles'),
   ('usuario:ver', 'Listar y consultar usuarios'),
   ('usuario:desactivar', 'Desactivar un usuario'),
-  ('rol:administrar', 'Crear roles y editar sus permisos')
-ON CONFLICT (codigo) DO NOTHING;
+  ('rol:administrar', 'Editar los permisos de cada rol')
+ON CONFLICT (codigo) DO UPDATE SET descripcion = EXCLUDED.descripcion;
 
 -- Asignacion de permisos a cada rol. Se resuelve por codigo para no depender
 -- de los ids generados.
