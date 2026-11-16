@@ -68,7 +68,8 @@ async function obtenerTurno(db, turnoId) {
 // de esta transaccion. La otra operacion sobre el mismo turno espera aca.
 async function bloquearTurno(db, turnoId) {
   const { rows } = await db.query(
-    `SELECT id, estado, paciente_id, medico_id, inicio, fin
+    `SELECT id, estado, paciente_id, medico_id, inicio, fin,
+            es_entreturno, duracion_reducida
        FROM turnos
       WHERE id = $1
       FOR UPDATE`,
@@ -116,6 +117,102 @@ async function crearEntreturno(db, { medicoId, inicio, fin }) {
   return obtenerTurno(db, rows[0].id);
 }
 
+async function existeMedico(db, medicoId) {
+  const { rowCount } = await db.query(
+    `SELECT 1
+       FROM usuarios u
+       JOIN usuario_rol ur ON ur.usuario_id = u.id
+       JOIN roles r ON r.id = ur.rol_id
+      WHERE u.id = $1 AND r.codigo = 'MEDICO' AND u.activo`,
+    [medicoId]
+  );
+  return rowCount > 0;
+}
+
+// El bloqueo es de la cola, no de una fila: la posicion nueva todavia no existe,
+// asi que FOR UPDATE no alcanza para que dos altas no calculen la misma.
+async function encolar(db, { pacienteId, medicoId, fecha }) {
+  await db.query('SELECT pg_advisory_xact_lock($1, hashtext($2))', [medicoId, fecha]);
+  const { rows: actuales } = await db.query(
+    `SELECT COALESCE(MAX(posicion), 0) AS max
+       FROM lista_espera
+      WHERE medico_id = $1 AND fecha = $2 AND estado = 'en_espera'`,
+    [medicoId, fecha]
+  );
+  const posicion = Number(actuales[0].max) + 1;
+  const { rows } = await db.query(
+    `INSERT INTO lista_espera (paciente_id, medico_id, fecha, posicion)
+     VALUES ($1, $2, $3, $4)
+     RETURNING id, paciente_id, medico_id, fecha, posicion, estado`,
+    [pacienteId, medicoId, fecha, posicion]
+  );
+  return rows[0];
+}
+
+async function listarEspera(db) {
+  const { rows } = await db.query(
+    `SELECT e.id, e.paciente_id, e.medico_id, e.fecha, e.posicion, e.estado,
+            p.nombre AS paciente_nombre, p.apellido AS paciente_apellido,
+            m.nombre AS medico_nombre, m.apellido AS medico_apellido
+       FROM lista_espera e
+       JOIN pacientes p ON p.id = e.paciente_id
+       JOIN usuarios m ON m.id = e.medico_id
+      WHERE e.estado = 'en_espera'
+      ORDER BY e.fecha, m.apellido, e.posicion`
+  );
+  return rows;
+}
+
+// La segunda cancelacion espera esta fila. Al despertar, el WHERE ya no
+// la ve si dejo de estar en_espera, y toma la posicion siguiente.
+async function tomarPrimeroEnEspera(db, medicoId, fecha) {
+  const { rows } = await db.query(
+    `SELECT id, paciente_id, posicion
+       FROM lista_espera
+      WHERE medico_id = $1 AND fecha = $2 AND estado = 'en_espera'
+      ORDER BY posicion
+      LIMIT 1
+      FOR UPDATE`,
+    [medicoId, fecha]
+  );
+  return rows[0] || null;
+}
+
+async function marcarEsperaAsignada(db, esperaId, turnoId) {
+  const { rows } = await db.query(
+    `UPDATE lista_espera
+        SET estado = 'asignado', turno_id = $2
+      WHERE id = $1 AND estado = 'en_espera'
+      RETURNING id`,
+    [esperaId, turnoId]
+  );
+  return rows[0] || null;
+}
+
+async function marcarCancelado(db, turnoId) {
+  const { rows } = await db.query(
+    `UPDATE turnos
+        SET estado = 'cancelado', actualizado_en = NOW()
+      WHERE id = $1 AND estado IN ('programado', 'confirmado')
+      RETURNING id`,
+    [turnoId]
+  );
+  return rows[0] || null;
+}
+
+// El hueco liberado. Hereda las marcas del turno cancelado: es el mismo horario.
+async function crearTurnoAsignado(db, { medicoId, pacienteId, inicio, fin, esEntreturno, duracionReducida }) {
+  const { rows } = await db.query(
+    `INSERT INTO turnos (
+       medico_id, paciente_id, inicio, fin, estado, es_entreturno, duracion_reducida
+     )
+     VALUES ($1, $2, $3, $4, 'programado', $5, $6)
+     RETURNING id`,
+    [medicoId, pacienteId, inicio, fin, esEntreturno, duracionReducida]
+  );
+  return obtenerTurno(db, rows[0].id);
+}
+
 module.exports = {
   crearPaciente,
   listarPacientes,
@@ -128,4 +225,11 @@ module.exports = {
   marcarProgramado,
   achicarTurno,
   crearEntreturno,
+  existeMedico,
+  encolar,
+  listarEspera,
+  tomarPrimeroEnEspera,
+  marcarEsperaAsignada,
+  marcarCancelado,
+  crearTurnoAsignado,
 };

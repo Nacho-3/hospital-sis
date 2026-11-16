@@ -27,4 +27,7 @@ export const admisionApi = {
   abrirTurno: (datos) => post('/turnos', datos),
   reservar: (turnoId, pacienteId) => post(`/turnos/${turnoId}/reservar`, { pacienteId }),
   insertarEntreturno: (turnoId) => post(`/turnos/${turnoId}/entreturno`),
+  listaEspera: () => pedir('/lista-espera'),
+  anotarEnEspera: (datos) => post('/lista-espera', datos),
+  cancelar: (turnoId) => post(`/turnos/${turnoId}/cancelar`),
 };

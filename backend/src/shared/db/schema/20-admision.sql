@@ -63,6 +63,10 @@ CREATE INDEX IF NOT EXISTS turnos_medico_inicio_idx ON turnos (medico_id, inicio
 -- y recien ahi pasarlo a 'programado' si seguia 'disponible'.
 -- Entreturno (HU 1.2): achicar fin del turno anterior y crear el nuevo
 -- en la misma transaccion, para que turnos_sin_solape no rechace el hueco.
+-- Lista de espera (HU 1.3): al cancelar, en la misma transaccion se toma
+-- la menor posicion en_espera de ese medico y ese dia. El turno cancelado
+-- conserva a su paciente. El hueco, que ya no ocupa el horario, se abre
+-- de nuevo para el primero de la cola.
 
 CREATE TABLE IF NOT EXISTS lista_espera (
   id SERIAL PRIMARY KEY,

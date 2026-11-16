@@ -38,4 +38,17 @@ router.post('/turnos/:id/entreturno', h(async (req, res) => {
   res.status(201).json(await admision.insertarEntreturno(req.params.id));
 }));
 
+router.get('/lista-espera', h(async (req, res) => {
+  res.json(await admision.listarEspera());
+}));
+
+router.post('/lista-espera', h(async (req, res) => {
+  res.status(201).json(await admision.anotarEnEspera(req.body));
+}));
+
+// HU 1.3. Cancelar puede devolver a quien hay que llamar, si habia cola ese dia.
+router.post('/turnos/:id/cancelar', h(async (req, res) => {
+  res.json(await admision.cancelar(req.params.id));
+}));
+
 module.exports = router;

@@ -1,5 +1,5 @@
 const pool = require('../../../shared/db/pool');
-const { DomainError } = require('../../../shared/errors/DomainError');
+const { DomainError, ConcurrenciaError } = require('../../../shared/errors/DomainError');
 const {
   NoEncontradoError,
   DatosInvalidosError,
@@ -33,6 +33,12 @@ function traducirErrorPg(err) {
     case '23505':
       if (err.constraint === 'pacientes_documento_key') {
         return new DatosInvalidosError('Ya hay un paciente con ese documento.');
+      }
+      if (err.constraint === 'lista_espera_paciente_dia_uidx') {
+        return new DatosInvalidosError('Ese paciente ya está en la lista de espera de ese médico para ese día.');
+      }
+      if (err.constraint === 'lista_espera_posicion_uidx') {
+        return new ConcurrenciaError('La lista de espera se acaba de actualizar.');
       }
       return err;
     case '23503':
