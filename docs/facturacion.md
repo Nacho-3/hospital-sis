@@ -97,9 +97,20 @@ Si falta el precio o el paciente no existe, no se guarda nada y el error queda e
 
 Errores: `400 DATOS_INVALIDOS`, `404 NO_ENCONTRADO`, `409 CONFLICTO_DE_CONCURRENCIA`, `409 PRECIO_NO_DEFINIDO`, `422 COBERTURA_INVALIDA`.
 
+## Permisos
+
+Todas las rutas, salvo `GET /health`, piden la sesión de Identidad (`Authorization: Bearer <token>`) y un permiso de la matriz. Los códigos están en `rutas/permisos.js`; los roles ya están cargados en `10-identidad.sql`.
+
+| Permiso | Rol | Rutas |
+|---|---|---|
+| `cuenta_paciente:ver` | Analista de facturación | `GET /pacientes`, `/coberturas`, `/nomenclador`, `/precios-insumo`, `/cobertura/:id`, `/cuenta/:id` |
+| `facturacion:calcular` | Analista de facturación | `PUT /cobertura/:id`, `POST /cuenta/:id/prestaciones`, `POST /cuenta/:id/cargos`, `/simulacion` |
+
+Sin token responde `401 NO_AUTENTICADO`; sin el permiso, `403 PERMISO_DENEGADO`. La pantalla oculta el formulario de cargos y el cambio de cobertura a quien no tiene `facturacion:calcular`. `reportes:ver` queda para cuando existan los reportes.
+
 ## Pendientes
 
-- **Permisos.** Ninguna ruta pide usuario: cualquiera puede ver una cuenta o cargarle un cargo. Depende de Identidad. Cuando esté, los cargos manuales deberían guardar qué usuario los creó.
+- **Autor de los cargos manuales.** Las rutas ya piden usuario; falta guardar qué usuario creó cada cargo manual (`req.usuario.id`).
 - **Ruta de simulación.** Borrar `rutas/simulacion.js` cuando Atención publique `MedicacionAdministrada`.
 - **Cierre de cuenta.** `cuentas.estado = 'cerrada'` existe en el esquema y ningún código lo usa.
 - **Reportes administrativos** del diseño: sin implementar.

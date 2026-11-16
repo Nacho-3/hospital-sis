@@ -3,8 +3,10 @@
     <h2>Reserva de turno</h2>
     <p class="tenue">La recepcionista confirma un turno libre. Pasa a Programado y nadie más puede tomarlo. El coordinador puede partir uno de 30 minutos en dos de 15. Si se cancela un turno, el primero de la lista de espera se queda con ese horario.</p>
 
+    <p v-if="!puedeAlgo" class="aviso aviso--error">Tu usuario no tiene permisos de Admisión.</p>
+
     <div class="reserva">
-      <form class="tarjeta" @submit.prevent="crearPaciente">
+      <form v-if="puede(P.REGISTRAR_PACIENTE)" class="tarjeta" @submit.prevent="crearPaciente">
         <strong>Registrar paciente</strong>
         <p class="tenue">La historia pide que el paciente ya esté en el sistema. Carlos López, por ejemplo.</p>
         <label class="campo">Nombre
@@ -19,7 +21,7 @@
         <button class="btn btn--primario" :disabled="guardando">Registrar</button>
       </form>
 
-      <form class="tarjeta" @submit.prevent="crearTurno">
+      <form v-if="puede(P.ENTRETURNO)" class="tarjeta" @submit.prevent="crearTurno">
         <strong>Abrir un turno libre</strong>
         <p class="tenue">Todavía no tiene paciente. En la historia, el de las 10:00 con el Dr. Silva.</p>
         <label class="campo">Médico
@@ -38,7 +40,7 @@
       </form>
     </div>
 
-    <div class="tarjeta reserva__elegir">
+    <div v-if="eligePaciente" class="tarjeta reserva__elegir">
       <label class="campo">Paciente que toma el turno
         <select v-model="pacienteId">
           <option value="">Elegir paciente…</option>
@@ -49,6 +51,8 @@
       </label>
     </div>
 
+    <template v-if="puede(P.VER_AGENDA)">
+    <h3 v-if="!eligePaciente">Agenda</h3>
     <table class="tabla">
       <thead>
         <tr>
@@ -74,7 +78,7 @@
           </td>
           <td>
             <button
-              v-if="t.estado === 'disponible'"
+              v-if="t.estado === 'disponible' && puede(P.RESERVAR)"
               class="btn btn--primario"
               :disabled="!pacienteId || guardando"
               @click="reservar(t)"
@@ -82,7 +86,7 @@
               Reservar
             </button>
             <button
-              v-if="puedePartir(t)"
+              v-if="puedePartir(t) && puede(P.ENTRETURNO)"
               class="btn"
               :disabled="guardando"
               @click="entreturno(t)"
@@ -90,7 +94,7 @@
               Entreturno
             </button>
             <button
-              v-if="t.estado === 'programado'"
+              v-if="t.estado === 'programado' && puede(P.CAMBIAR_ESTADO)"
               class="btn"
               :disabled="guardando"
               @click="confirmar(t)"
@@ -98,7 +102,7 @@
               Confirmar
             </button>
             <button
-              v-if="t.estado === 'confirmado'"
+              v-if="t.estado === 'confirmado' && puede(P.CAMBIAR_ESTADO)"
               class="btn btn--primario"
               :disabled="guardando"
               @click="llegada(t)"
@@ -106,7 +110,7 @@
               Llegó
             </button>
             <button
-              v-if="t.estado === 'en_sala_de_espera'"
+              v-if="t.estado === 'en_sala_de_espera' && puede(P.CAMBIAR_ESTADO)"
               class="btn"
               :disabled="guardando"
               @click="atender(t)"
@@ -114,7 +118,7 @@
               Atendido
             </button>
             <button
-              v-if="puedeCancelar(t)"
+              v-if="puedeCancelar(t) && puede(P.CANCELAR)"
               class="btn btn--peligro"
               :disabled="guardando"
               @click="cancelar(t)"
@@ -126,10 +130,11 @@
       </tbody>
     </table>
     <p v-if="!turnos.length" class="tenue">No hay turnos. Abrí uno libre para poder reservarlo.</p>
+    </template>
 
     <div v-if="llamado" class="aviso aviso--alerta llamado">{{ llamado }}</div>
 
-    <form class="tarjeta reserva__elegir" @submit.prevent="anotarEspera">
+    <form v-if="puede(P.ESPERA)" class="tarjeta reserva__elegir" @submit.prevent="anotarEspera">
       <strong>Lista de espera</strong>
       <p class="tenue">Sin turno todavía. Si se cancela uno de ese médico en ese día, se llama al primero.</p>
       <div class="espera">
@@ -147,6 +152,8 @@
       <p v-if="!pacienteId" class="tenue">Elegí arriba el paciente que queda en espera.</p>
     </form>
 
+    <template v-if="puede(P.ESPERA) || puede(P.VER_AGENDA)">
+    <h3 v-if="!puede(P.ESPERA)">Lista de espera</h3>
     <table class="tabla">
       <thead>
         <tr>
@@ -166,10 +173,11 @@
       </tbody>
     </table>
     <p v-if="!esperaFilas.length" class="tenue">Nadie está en la lista de espera.</p>
+    </template>
 
     <div v-if="alertaRoja" class="aviso aviso--alerta llamado">{{ alertaRoja }}</div>
 
-    <form class="tarjeta reserva__elegir" @submit.prevent="clasificar">
+    <form v-if="puede(P.REGISTRAR_TRIAJE)" class="tarjeta reserva__elegir" @submit.prevent="clasificar">
       <strong>Guardia</strong>
       <p class="tenue">Llega sin turno. Un Código Rojo entra delante de los de menor riesgo y se avisa a los médicos disponibles.</p>
       <div class="espera">
@@ -193,6 +201,8 @@
       <p v-if="!pacienteId" class="tenue">Elegí arriba el paciente que llega a la guardia.</p>
     </form>
 
+    <template v-if="puede(P.VER_TRIAJE)">
+    <h3 v-if="!puede(P.REGISTRAR_TRIAJE)">Guardia</h3>
     <table class="tabla">
       <thead>
         <tr>
@@ -210,8 +220,9 @@
       </tbody>
     </table>
     <p v-if="!guardiaFilas.length" class="tenue">La guardia está vacía.</p>
+    </template>
 
-    <form class="tarjeta reserva__elegir" @submit.prevent="observar">
+    <form v-if="puede(P.REGISTRAR_PACIENTE)" class="tarjeta reserva__elegir" @submit.prevent="observar">
       <strong>Observación</strong>
       <p class="tenue">El pase queda confirmado. Atención arma el protocolo de ese ingreso.</p>
       <div class="espera">
@@ -235,6 +246,21 @@
 <script setup>
 import { reactive, ref, onMounted } from 'vue';
 import { admisionApi } from '../services/admisionApi';
+import { tienePermiso as puede } from '../../identidad/services/sesion.js';
+
+const P = {
+  REGISTRAR_PACIENTE: 'paciente:registrar',
+  VER_AGENDA: 'agenda:ver',
+  RESERVAR: 'turno:reservar',
+  CANCELAR: 'turno:cancelar',
+  CAMBIAR_ESTADO: 'turno:cambiar_estado',
+  ENTRETURNO: 'turno:insertar_entreturno',
+  ESPERA: 'espera:agregar',
+  REGISTRAR_TRIAJE: 'triaje:registrar',
+  VER_TRIAJE: 'triaje:ver',
+};
+const puedeAlgo = Object.values(P).some((p) => puede(p));
+const eligePaciente = [P.RESERVAR, P.ESPERA, P.REGISTRAR_TRIAJE, P.REGISTRAR_PACIENTE].some((p) => puede(p));
 
 const pacientes = ref([]);
 const medicos = ref([]);
@@ -314,14 +340,15 @@ function avisar(texto, tipo = 'ok') {
   }, duracion);
 }
 
+const sinPermiso = async () => [];
 async function cargar() {
   const [listaPacientes, listaMedicos, listaTurnos, listaEspera, listaEnfermeros, listaGuardia] = await Promise.all([
-    admisionApi.pacientes(),
-    admisionApi.medicos(),
-    admisionApi.turnos(),
-    admisionApi.listaEspera(),
-    admisionApi.enfermeros(),
-    admisionApi.guardia(),
+    puedeAlgo ? admisionApi.pacientes() : sinPermiso(),
+    puede(P.VER_AGENDA) ? admisionApi.medicos() : sinPermiso(),
+    puede(P.VER_AGENDA) ? admisionApi.turnos() : sinPermiso(),
+    puede(P.ESPERA) || puede(P.VER_AGENDA) ? admisionApi.listaEspera() : sinPermiso(),
+    puede(P.REGISTRAR_TRIAJE) ? admisionApi.enfermeros() : sinPermiso(),
+    puede(P.VER_TRIAJE) ? admisionApi.guardia() : sinPermiso(),
   ]);
   pacientes.value = listaPacientes;
   medicos.value = listaMedicos;

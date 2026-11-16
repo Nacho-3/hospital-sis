@@ -1,14 +1,19 @@
-// Cliente HTTP de Admision. Vite reenvia /api al backend.
+import { token, cerrarSesion } from '../../identidad/services/sesion.js';
+
 const BASE = '/api/admision';
 
 async function pedir(ruta, { method = 'GET', body } = {}) {
+  const headers = {};
+  if (body) headers['Content-Type'] = 'application/json';
+  if (token.value) headers.Authorization = `Bearer ${token.value}`;
   const res = await fetch(`${BASE}${ruta}`, {
     method,
-    headers: body ? { 'Content-Type': 'application/json' } : undefined,
+    headers,
     body: body ? JSON.stringify(body) : undefined,
   });
   const datos = await res.json().catch(() => null);
   if (!res.ok) {
+    if (res.status === 401 && token.value) cerrarSesion();
     const error = new Error(datos?.mensaje || `Error ${res.status}`);
     error.codigo = datos?.error;
     error.status = res.status;

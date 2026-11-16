@@ -2,9 +2,10 @@
   <section class="pagina">
     <header class="tarjeta fac__cabecera">
       <h1>Facturación y Administración</h1>
-      <BuscadorPaciente @elegir="consultar" @error="avisar($event, 'error')" />
+      <BuscadorPaciente v-if="puedeVer" @elegir="consultar" @error="avisar($event, 'error')" />
     </header>
 
+    <p v-if="!puedeVer" class="aviso aviso--error">Tu usuario no tiene permiso para consultar cuentas de pacientes.</p>
     <p v-if="error" class="fac__error" role="alert">{{ error }}</p>
 
     <template v-if="cuenta">
@@ -13,6 +14,7 @@
           :cobertura="cobertura"
           :coberturas="coberturas"
           :ocupado="guardando"
+          :editable="puedeCalcular"
           @cambiar="cambiarCobertura"
         />
 
@@ -36,6 +38,7 @@
       </div>
 
       <FormularioCargo
+        v-if="puedeCalcular"
         class="fac__bloque"
         :nomenclador="nomenclador"
         :precios="precios"
@@ -63,6 +66,13 @@ import FormularioCargo from '../components/FormularioCargo.vue';
 import TablaCargos from '../components/TablaCargos.vue';
 import { facturacionService } from '../services/facturacionService';
 import { formatearMonto } from '../services/formato';
+import { tienePermiso } from '../../identidad/services/sesion.js';
+
+// Consultar pide cuenta_paciente:ver; cambiar la cobertura y facturar,
+// facturacion:calcular. La pantalla oculta lo que el rol no puede hacer;
+// el backend lo vuelve a controlar.
+const puedeVer = tienePermiso('cuenta_paciente:ver');
+const puedeCalcular = tienePermiso('facturacion:calcular');
 
 // La ruta de simulacion del backend solo existe fuera de produccion.
 const SIMULACION_DISPONIBLE = import.meta.env.DEV;
