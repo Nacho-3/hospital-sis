@@ -23,7 +23,9 @@ CREATE TABLE IF NOT EXISTS pacientes (
 -- Un turno nace disponible (sin paciente) y pasa a programado al reservarlo.
 -- 'disponible' no esta en la tabla de estados de la historia, pero el escenario
 -- de reserva habla de un turno que ya existe y esta libre.
--- Las transiciones validas las controla el patron State en el codigo.
+-- Las transiciones validas las controla el patron State en el codigo:
+-- disponible -> programado -> confirmado -> en_sala_de_espera -> atendido.
+-- programado y confirmado pueden cancelarse. Cancelado no pasa a atendido.
 CREATE TABLE IF NOT EXISTS turnos (
   id SERIAL PRIMARY KEY,
   medico_id INTEGER NOT NULL REFERENCES usuarios (id),

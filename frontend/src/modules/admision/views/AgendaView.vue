@@ -90,6 +90,30 @@
               Entreturno
             </button>
             <button
+              v-if="t.estado === 'programado'"
+              class="btn"
+              :disabled="guardando"
+              @click="confirmar(t)"
+            >
+              Confirmar
+            </button>
+            <button
+              v-if="t.estado === 'confirmado'"
+              class="btn btn--primario"
+              :disabled="guardando"
+              @click="llegada(t)"
+            >
+              Llegó
+            </button>
+            <button
+              v-if="t.estado === 'en_sala_de_espera'"
+              class="btn"
+              :disabled="guardando"
+              @click="atender(t)"
+            >
+              Atendido
+            </button>
+            <button
               v-if="puedeCancelar(t)"
               class="btn btn--peligro"
               :disabled="guardando"
@@ -312,6 +336,48 @@ async function anotarEspera() {
   }
 }
 
+async function confirmar(fila) {
+  guardando.value = true;
+  try {
+    await admisionApi.confirmar(fila.id);
+    await cargar();
+    avisar('El paciente confirmó el turno.');
+  } catch (e) {
+    await cargar();
+    avisar(e.message, 'error');
+  } finally {
+    guardando.value = false;
+  }
+}
+
+async function llegada(fila) {
+  guardando.value = true;
+  try {
+    const turno = await admisionApi.registrarLlegada(fila.id);
+    await cargar();
+    avisar(`${turno.paciente_apellido}, ${turno.paciente_nombre} está en la sala de espera.`);
+  } catch (e) {
+    await cargar();
+    avisar(e.message, 'error');
+  } finally {
+    guardando.value = false;
+  }
+}
+
+async function atender(fila) {
+  guardando.value = true;
+  try {
+    await admisionApi.atender(fila.id);
+    await cargar();
+    avisar('Consulta marcada como atendida.');
+  } catch (e) {
+    await cargar();
+    avisar(e.message, 'error');
+  } finally {
+    guardando.value = false;
+  }
+}
+
 async function cancelar(fila) {
   guardando.value = true;
   try {
@@ -371,7 +437,10 @@ async function reservar(fila) {
   background: var(--color-neutro);
 }
 .estado--disponible { background: var(--estado-disponible); }
-.estado--programado { background: var(--color-primario); }
+.estado--programado,
+.estado--confirmado { background: var(--color-primario); }
+.estado--en_sala_de_espera { background: var(--color-alerta); }
+.estado--atendido { background: var(--color-exito); }
 .estado--cancelado { background: var(--color-peligro); }
 .tabla .badge { margin-left: var(--espacio-xs); }
 .espera {
