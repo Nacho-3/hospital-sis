@@ -33,4 +33,7 @@ export const admisionApi = {
   confirmar: (turnoId) => post(`/turnos/${turnoId}/confirmar`),
   registrarLlegada: (turnoId) => post(`/turnos/${turnoId}/llegada`),
   atender: (turnoId) => post(`/turnos/${turnoId}/atender`),
+  enfermeros: () => pedir('/enfermeros'),
+  guardia: () => pedir('/guardia'),
+  clasificarGuardia: (datos) => post('/guardia', datos),
 };

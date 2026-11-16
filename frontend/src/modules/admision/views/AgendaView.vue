@@ -167,6 +167,50 @@
     </table>
     <p v-if="!esperaFilas.length" class="tenue">Nadie está en la lista de espera.</p>
 
+    <div v-if="alertaRoja" class="aviso aviso--alerta llamado">{{ alertaRoja }}</div>
+
+    <form class="tarjeta reserva__elegir" @submit.prevent="clasificar">
+      <strong>Guardia</strong>
+      <p class="tenue">Llega sin turno. Un Código Rojo entra delante de los de menor riesgo y se avisa a los médicos disponibles.</p>
+      <div class="espera">
+        <label class="campo">Enfermero
+          <select v-model="guardia.enfermeroId" required>
+            <option value="">Elegir enfermero…</option>
+            <option v-for="e in enfermeros" :key="e.id" :value="e.id">{{ e.apellido }}, {{ e.nombre }}</option>
+          </select>
+        </label>
+        <label class="campo">Nivel
+          <select v-model="guardia.nivel" required>
+            <option value="rojo">Código Rojo</option>
+            <option value="naranja">Naranja</option>
+            <option value="amarillo">Amarillo</option>
+            <option value="verde">Verde</option>
+            <option value="azul">Azul</option>
+          </select>
+        </label>
+        <button class="btn btn--primario" :disabled="guardando || !pacienteId || !enfermeros.length">Clasificar</button>
+      </div>
+      <p v-if="!pacienteId" class="tenue">Elegí arriba el paciente que llega a la guardia.</p>
+    </form>
+
+    <table class="tabla">
+      <thead>
+        <tr>
+          <th>Posición</th>
+          <th>Nivel</th>
+          <th>Paciente</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="g in guardiaFilas" :key="g.id">
+          <td>{{ g.posicion }}</td>
+          <td><span :class="['nivel', `nivel--${g.nivel}`]">{{ etiquetaNivel(g.nivel) }}</span></td>
+          <td>{{ g.paciente_apellido }}, {{ g.paciente_nombre }}</td>
+        </tr>
+      </tbody>
+    </table>
+    <p v-if="!guardiaFilas.length" class="tenue">La guardia está vacía.</p>
+
     <div class="avisos">
       <div v-for="a in avisos" :key="a.id" :class="['aviso', a.tipo !== 'ok' && `aviso--${a.tipo}`]">{{ a.texto }}</div>
     </div>
@@ -181,15 +225,31 @@ const pacientes = ref([]);
 const medicos = ref([]);
 const turnos = ref([]);
 const esperaFilas = ref([]);
+const enfermeros = ref([]);
+const guardiaFilas = ref([]);
 const pacienteId = ref('');
 const guardando = ref(false);
 const avisos = ref([]);
 const llamado = ref('');
+const alertaRoja = ref('');
 let siguiente = 0;
 
 const paciente = reactive({ nombre: '', apellido: '', documento: '' });
 const turno = reactive({ medicoId: '', inicio: '', fin: '' });
 const espera = reactive({ medicoId: '', fecha: '' });
+const guardia = reactive({ enfermeroId: '', nivel: 'amarillo' });
+
+const NIVELES = {
+  rojo: 'Código Rojo',
+  naranja: 'Naranja',
+  amarillo: 'Amarillo',
+  verde: 'Verde',
+  azul: 'Azul',
+};
+
+function etiquetaNivel(nivel) {
+  return NIVELES[nivel] || nivel;
+}
 
 const ETIQUETAS = {
   disponible: 'Disponible',
@@ -239,18 +299,23 @@ function avisar(texto, tipo = 'ok') {
 }
 
 async function cargar() {
-  const [listaPacientes, listaMedicos, listaTurnos, listaEspera] = await Promise.all([
+  const [listaPacientes, listaMedicos, listaTurnos, listaEspera, listaEnfermeros, listaGuardia] = await Promise.all([
     admisionApi.pacientes(),
     admisionApi.medicos(),
     admisionApi.turnos(),
     admisionApi.listaEspera(),
+    admisionApi.enfermeros(),
+    admisionApi.guardia(),
   ]);
   pacientes.value = listaPacientes;
   medicos.value = listaMedicos;
   turnos.value = listaTurnos;
   esperaFilas.value = listaEspera;
+  enfermeros.value = listaEnfermeros;
+  guardiaFilas.value = listaGuardia;
   if (!turno.medicoId && listaMedicos.length) turno.medicoId = listaMedicos[0].id;
   if (!espera.medicoId && listaMedicos.length) espera.medicoId = listaMedicos[0].id;
+  if (!guardia.enfermeroId && listaEnfermeros.length) guardia.enfermeroId = listaEnfermeros[0].id;
 }
 
 function fechaLocal(d) {
@@ -313,6 +378,28 @@ async function entreturno(fila) {
     avisar(`Quedó en 15 minutos y se abrió el entreturno de ${horario(resultado.entreturno)}.`);
   } catch (e) {
     await cargar();
+    avisar(e.message, 'error');
+  } finally {
+    guardando.value = false;
+  }
+}
+
+async function clasificar() {
+  guardando.value = true;
+  try {
+    const resultado = await admisionApi.clasificarGuardia({
+      pacienteId: Number(pacienteId.value),
+      enfermeroId: Number(guardia.enfermeroId),
+      nivel: guardia.nivel,
+    });
+    await cargar();
+    if (resultado.aviso) {
+      alertaRoja.value = resultado.aviso;
+      avisar(resultado.aviso, 'alerta');
+    } else {
+      avisar('Paciente clasificado en la guardia.');
+    }
+  } catch (e) {
     avisar(e.message, 'error');
   } finally {
     guardando.value = false;
@@ -441,6 +528,18 @@ async function reservar(fila) {
 .estado--confirmado { background: var(--color-primario); }
 .estado--en_sala_de_espera { background: var(--color-alerta); }
 .estado--atendido { background: var(--color-exito); }
+.nivel {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: var(--radio-pill);
+  color: var(--color-sobre);
+}
+.nivel--rojo { background: var(--triaje-rojo); }
+.nivel--naranja { background: var(--triaje-naranja); }
+.nivel--amarillo { background: var(--triaje-amarillo); }
+.nivel--verde { background: var(--triaje-verde); }
+.nivel--azul { background: var(--triaje-azul); }
 .estado--cancelado { background: var(--color-peligro); }
 .tabla .badge { margin-left: var(--espacio-xs); }
 .espera {

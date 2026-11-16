@@ -64,4 +64,17 @@ router.post('/turnos/:id/atender', h(async (req, res) => {
   res.json(await admision.atender(req.params.id));
 }));
 
+router.get('/enfermeros', h(async (req, res) => {
+  res.json(await admision.listarEnfermeros());
+}));
+
+router.get('/guardia', h(async (req, res) => {
+  res.json(await admision.listarGuardia());
+}));
+
+// HU 3.1. 201: la persona entra a la cola. Si es rojo, el aviso va en el cuerpo.
+router.post('/guardia', h(async (req, res) => {
+  res.status(201).json(await admision.clasificarGuardia(req.body));
+}));
+
 module.exports = router;

@@ -92,9 +92,11 @@ CREATE UNIQUE INDEX IF NOT EXISTS lista_espera_paciente_dia_uidx
   WHERE estado = 'en_espera';
 
 -- Cola de guardia. prioridad 1 es la mas urgente.
--- rojo = Riesgo Vital (HU 3.1). El resto de la escala existe para poder
--- desplazar a los pacientes de menor riesgo. Si la catedra usa otros niveles,
--- se cambian estos CHECK antes de cargar datos.
+-- rojo = Riesgo Vital (HU 3.1). El ingreso se ubica delante del primer
+-- paciente de menor prioridad. La misma prioridad conserva el orden de llegada,
+-- asi que un codigo rojo no pasa por encima de otro rojo.
+-- Despues del COMMIT se publica TriajeRiesgoVital.
+-- Si la catedra usa otros niveles, se cambian estos CHECK antes de cargar datos.
 CREATE TABLE IF NOT EXISTS cola_guardia (
   id SERIAL PRIMARY KEY,
   paciente_id INTEGER NOT NULL REFERENCES pacientes (id),
@@ -127,4 +129,17 @@ SELECT u.id, r.id
 FROM usuarios u
 JOIN roles r ON r.codigo = 'MEDICO'
 WHERE u.email = 'silva@hospital.test'
+ON CONFLICT DO NOTHING;
+
+-- Escenario de la HU 3.1: la enfermera que clasifica el codigo rojo.
+-- usuarios lo administra Identidad. No es una contraseña de acceso.
+INSERT INTO usuarios (email, password_hash, nombre, apellido)
+VALUES ('gomez@hospital.test', 'escenario-hu-3.1', 'Laura', 'Gómez')
+ON CONFLICT (email) DO NOTHING;
+
+INSERT INTO usuario_rol (usuario_id, rol_id)
+SELECT u.id, r.id
+FROM usuarios u
+JOIN roles r ON r.codigo = 'ENFERMERO'
+WHERE u.email = 'gomez@hospital.test'
 ON CONFLICT DO NOTHING;
