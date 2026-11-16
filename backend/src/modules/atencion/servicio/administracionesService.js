@@ -1,10 +1,20 @@
 const crypto = require('crypto');
-const { conTransaccion } = require('../../compartido/db');
-const bus = require('../../compartido/eventBus');
-const { ErrorNegocio } = require('../../compartido/errores');
+const pool = require('../../../shared/db/pool');
+const { conTransaccion } = require('../../../shared/db/transaccion');
+const bus = require('../../../shared/events/eventBus');
+const { ErrorNegocio } = require('../dominio/errores');
 const EVENTOS = require('../dominio/eventos');
 const { dentroDeVentana, siguienteProgramacion } = require('../dominio/administracion');
 const admRepo = require('../repositorio/administracionesRepo');
+
+async function listarPendientes(pacienteId) {
+  const id = Number(pacienteId);
+  if (!Number.isInteger(id) || id <= 0) {
+    throw new ErrorNegocio('El paciente debe ser un identificador válido', 'PACIENTE_INVALIDO', 400);
+  }
+  const hasta = new Date(Date.now() + 2 * 3600_000);
+  return admRepo.listarPendientes(pool, { pacienteId: id, hasta });
+}
 
 async function confirmar({ administracionId, enfermeroId, ahora = new Date() }) {
   const evento = await conTransaccion(async (db) => {
@@ -31,4 +41,4 @@ async function confirmar({ administracionId, enfermeroId, ahora = new Date() }) 
   bus.emit(EVENTOS.MEDICACION_ADMINISTRADA, evento);   // Camas descuenta stock, Facturación cobra
   return evento;
 }
-module.exports = { confirmar };
+module.exports = { listarPendientes, confirmar };

@@ -1,7 +1,48 @@
+const indicacionesRepo = require('../repositorio/indicacionesRepo');
+const admRepo = require('../repositorio/administracionesRepo');
+const { conTransaccion } = require('../../../shared/db/transaccion');
+const { ErrorNegocio } = require('../dominio/errores');
+
+function enteroPositivo(valor, campo) {
+  const numero = Number(valor);
+  if (!Number.isInteger(numero) || numero <= 0) {
+    throw new ErrorNegocio(`${campo} debe ser un entero positivo`, 'DATO_INVALIDO', 400);
+  }
+  return numero;
+}
+
 async function crear({ pacienteId, medicoId, insumoId, dosis, intervaloHoras, margenMinutos = 30, primeraDosis }) {
+  const paciente = enteroPositivo(pacienteId, 'pacienteId');
+  const medico = enteroPositivo(medicoId, 'medicoId');
+  const insumo = enteroPositivo(insumoId, 'insumoId');
+  const intervalo = enteroPositivo(intervaloHoras, 'intervaloHoras');
+  if (typeof dosis !== 'string' || !dosis.trim() || dosis.trim().length > 80) {
+    throw new ErrorNegocio('La dosis es obligatoria y admite hasta 80 caracteres', 'DATO_INVALIDO', 400);
+  }
+  const margen = Number(margenMinutos);
+  if (!Number.isInteger(margen) || margen < 0) {
+    throw new ErrorNegocio('margenMinutos debe ser un entero no negativo', 'DATO_INVALIDO', 400);
+  }
+  const fechaPrimeraDosis = new Date(primeraDosis);
+  if (!primeraDosis || Number.isNaN(fechaPrimeraDosis.getTime())) {
+    throw new ErrorNegocio('primeraDosis debe ser una fecha válida', 'DATO_INVALIDO', 400);
+  }
+
   return conTransaccion(async (db) => {
-    const ind = await indicacionesRepo.insertar(db, { pacienteId, medicoId, insumoId, dosis, intervaloHoras, margenMinutos });
-    await admRepo.insertar(db, { indicacionId: ind.id, programadaPara: primeraDosis });
-    return ind;
+    const indicacion = await indicacionesRepo.insertar(db, {
+      pacienteId: paciente,
+      medicoId: medico,
+      insumoId: insumo,
+      dosis: dosis.trim(),
+      intervaloHoras: intervalo,
+      margenMinutos: margen,
+    });
+    const primeraAdministracion = await admRepo.insertar(db, {
+      indicacionId: indicacion.id,
+      programadaPara: fechaPrimeraDosis,
+    });
+    return { ...indicacion, primeraAdministracion };
   });
 }
+
+module.exports = { crear };
