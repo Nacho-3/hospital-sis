@@ -21,6 +21,7 @@ watch(haySesion, (hay) => {
       <router-link to="/admision" class="barra__link" active-class="barra__link--activo">Admisión</router-link>
       <router-link to="/atencion" class="barra__link" active-class="barra__link--activo">Atención</router-link>
       <router-link to="/camas" class="barra__link" active-class="barra__link--activo">Camas</router-link>
+      <router-link to="/historia" class="barra__link" active-class="barra__link--activo">Historia clínica</router-link>
       <router-link to="/facturacion" class="barra__link" active-class="barra__link--activo">Facturación</router-link>
 
       <span class="tenue">{{ nombreCompleto }}</span>
