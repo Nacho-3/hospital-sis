@@ -4,13 +4,16 @@ async function insertar(db, { pacienteId, enfermeroId, signosVitalesId = null, t
      VALUES ($1,$2,$3,$4,$5) RETURNING *`, [pacienteId, enfermeroId, signosVitalesId, texto, automatica]);
   return rows[0];
 }
-// indicacionesRepo.js -> insertar({pacienteId, medicoId, insumoId, dosis, intervaloHoras, margenMinutos}), buscarPorId
-// protocolosRepo.js
-async function insertarConTareas(db, pacienteId, { tipo, tareas }) {
-  const { rows: [p] } = await db.query(
-    `INSERT INTO protocolos (paciente_id, tipo) VALUES ($1,$2) RETURNING *`, [pacienteId, tipo]);
-  for (const t of tareas)
-    await db.query(`INSERT INTO protocolo_tareas (protocolo_id, descripcion) VALUES ($1,$2)`, [p.id, t.descripcion]);
-  return { ...p, tareas };
+async function listarPorPaciente(db, pacienteId) {
+  const { rows } = await db.query(
+    `SELECT id, paciente_id, enfermero_id, signos_vitales_id, texto, automatica, creado_en
+       FROM notas_enfermeria
+      WHERE paciente_id = $1
+      ORDER BY creado_en DESC, id DESC
+      LIMIT 100`,
+    [pacienteId]
+  );
+  return rows;
 }
-// + listarPorPaciente(db, pacienteId) y marcarTareaRealizada(db, tareaId)
+
+module.exports = { insertar, listarPorPaciente };

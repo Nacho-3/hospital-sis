@@ -22,8 +22,11 @@ async function insertar(db, { indicacionId, programadaPara, cantidad = 1 }) {
 }
 async function listarPendientes(db, { pacienteId, hasta }) {
   const { rows } = await db.query(
-    `SELECT a.*, i.dosis, i.insumo_id, i.paciente_id, i.margen_minutos
-       FROM administraciones a JOIN indicaciones i ON i.id = a.indicacion_id
+    `SELECT a.*, i.dosis, i.insumo_id, i.paciente_id, i.margen_minutos,
+            ins.nombre AS insumo_nombre
+       FROM administraciones a
+       JOIN indicaciones i ON i.id = a.indicacion_id
+       JOIN insumos ins ON ins.id = i.insumo_id
       WHERE a.estado = 'pendiente' AND i.activa
         AND ($1::int IS NULL OR i.paciente_id = $1)
         AND a.programada_para <= $2
