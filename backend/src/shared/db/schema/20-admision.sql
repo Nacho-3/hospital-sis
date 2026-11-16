@@ -23,7 +23,9 @@ CREATE TABLE IF NOT EXISTS pacientes (
 -- Un turno nace disponible (sin paciente) y pasa a programado al reservarlo.
 -- 'disponible' no esta en la tabla de estados de la historia, pero el escenario
 -- de reserva habla de un turno que ya existe y esta libre.
--- Las transiciones validas las controla el patron State en el codigo.
+-- Las transiciones validas las controla el patron State en el codigo:
+-- disponible -> programado -> confirmado -> en_sala_de_espera -> atendido.
+-- programado y confirmado pueden cancelarse. Cancelado no pasa a atendido.
 CREATE TABLE IF NOT EXISTS turnos (
   id SERIAL PRIMARY KEY,
   medico_id INTEGER NOT NULL REFERENCES usuarios (id),
@@ -63,6 +65,10 @@ CREATE INDEX IF NOT EXISTS turnos_medico_inicio_idx ON turnos (medico_id, inicio
 -- y recien ahi pasarlo a 'programado' si seguia 'disponible'.
 -- Entreturno (HU 1.2): achicar fin del turno anterior y crear el nuevo
 -- en la misma transaccion, para que turnos_sin_solape no rechace el hueco.
+-- Lista de espera (HU 1.3): al cancelar, en la misma transaccion se toma
+-- la menor posicion en_espera de ese medico y ese dia. El turno cancelado
+-- conserva a su paciente. El hueco, que ya no ocupa el horario, se abre
+-- de nuevo para el primero de la cola.
 
 CREATE TABLE IF NOT EXISTS lista_espera (
   id SERIAL PRIMARY KEY,
@@ -108,3 +114,17 @@ CREATE UNIQUE INDEX IF NOT EXISTS cola_guardia_posicion_uidx
 
 CREATE INDEX IF NOT EXISTS cola_guardia_prioridad_idx
   ON cola_guardia (prioridad, posicion);
+
+-- Escenario de la HU 1.1: el turno de las 10:00 es del Dr. Silva.
+-- usuarios lo administra Identidad. Esta fila existe para poder reservar
+-- mientras ese modulo no da de alta medicos. No es una contraseña de acceso.
+INSERT INTO usuarios (email, password_hash, nombre, apellido)
+VALUES ('silva@hospital.test', 'escenario-hu-1.1', 'Andrés', 'Silva')
+ON CONFLICT (email) DO NOTHING;
+
+INSERT INTO usuario_rol (usuario_id, rol_id)
+SELECT u.id, r.id
+FROM usuarios u
+JOIN roles r ON r.codigo = 'MEDICO'
+WHERE u.email = 'silva@hospital.test'
+ON CONFLICT DO NOTHING;

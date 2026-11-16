@@ -1,24 +1,31 @@
 <template>
   <section class="pagina">
-    <div class="tabs" role="tablist">
-      <button
-        v-for="t in tabs"
-        :key="t.id"
-        role="tab"
-        :aria-selected="tab === t.id"
-        :class="['tab', { 'tab--activa': tab === t.id }]"
-        @click="tab = t.id"
-      >
-        {{ t.nombre }}
-        <span v-if="t.id === 'inventario' && alertas.length" class="badge">{{ alertas.length }}</span>
-      </button>
-      <span :class="['en-vivo', { 'en-vivo--on': conectado }]">
-        {{ conectado ? 'En vivo' : 'Sin conexión en vivo' }}
-      </span>
+    <!-- El login y la sesion los maneja Identidad; aca solo se mira el permiso -->
+    <div v-if="!tabs.length" class="tarjeta">
+      <p>Tu usuario no tiene permisos en el módulo de Camas.</p>
     </div>
 
-    <MapaCamas v-if="tab === 'mapa'" :version="version" @aviso="avisar" />
-    <InventarioPanel v-else :version="versionStock" :alertas="alertas" @aviso="avisar" @limpiar-alertas="alertas = []" />
+    <template v-else>
+      <div class="tabs" role="tablist">
+        <button
+          v-for="t in tabs"
+          :key="t.id"
+          role="tab"
+          :aria-selected="tab === t.id"
+          :class="['tab', { 'tab--activa': tab === t.id }]"
+          @click="tab = t.id"
+        >
+          {{ t.nombre }}
+          <span v-if="t.id === 'inventario' && alertas.length" class="badge">{{ alertas.length }}</span>
+        </button>
+        <span :class="['en-vivo', { 'en-vivo--on': conectado }]">
+          {{ conectado ? 'En vivo' : 'Sin conexión en vivo' }}
+        </span>
+      </div>
+
+      <MapaCamas v-if="tab === 'mapa'" :version="version" @aviso="avisar" />
+      <InventarioPanel v-else :version="versionStock" :alertas="alertas" @aviso="avisar" @limpiar-alertas="alertas = []" />
+    </template>
 
     <transition-group name="aviso" tag="div" class="avisos">
       <div v-for="a in avisos" :key="a.id" :class="['aviso', a.tipo !== 'ok' && `aviso--${a.tipo}`]">{{ a.texto }}</div>
@@ -27,16 +34,27 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount } from 'vue';
+import { ref, computed, watch, onBeforeUnmount } from 'vue';
 import MapaCamas from '../components/MapaCamas.vue';
 import InventarioPanel from '../components/InventarioPanel.vue';
 import { escucharEnVivo } from '../services/camasApi';
+import { token, puede, PERMISOS } from '../services/sesion';
 
-const tabs = [
-  { id: 'mapa', nombre: 'Mapa de camas' },
-  { id: 'inventario', nombre: 'Inventario' },
-];
+// Cada pestaña se muestra solo si el usuario tiene el permiso para verla.
+const tabs = computed(() =>
+  [
+    puede(PERMISOS.VER_MAPA) && { id: 'mapa', nombre: 'Mapa de camas' },
+    puede(PERMISOS.VER_INVENTARIO) && { id: 'inventario', nombre: 'Inventario' },
+  ].filter(Boolean)
+);
 const tab = ref('mapa');
+watch(
+  tabs,
+  (lista) => {
+    if (lista.length && !lista.some((t) => t.id === tab.value)) tab.value = lista[0].id;
+  },
+  { immediate: true }
+);
 
 // Cada evento en vivo sube una version y los hijos recargan.
 const version = ref(0);
@@ -55,7 +73,13 @@ function avisar({ tipo = 'ok', texto }) {
   }, tipo === 'error' ? 6000 : 3500);
 }
 
-onMounted(() => {
+// El canal en vivo se abre con el token del usuario y se vuelve a abrir
+// cuando cambia la sesion (otro login o token vencido).
+function conectarEnVivo() {
+  if (cerrar) cerrar();
+  cerrar = null;
+  conectado.value = false;
+  if (!token.value || !tabs.value.length) return;
   cerrar = escucharEnVivo(
     {
       CamaEstadoCambiado: () => version.value++,
@@ -71,7 +95,9 @@ onMounted(() => {
       conectado.value = ok;
     }
   );
-});
-
+}
+watch(token, conectarEnVivo, { immediate: true });
 onBeforeUnmount(() => cerrar && cerrar());
+
 </script>
+

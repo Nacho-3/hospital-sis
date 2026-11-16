@@ -8,12 +8,14 @@ app.use(express.json());
 
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
 
-// Cada responsable registra aca las rutas de su modulo, por ejemplo:
-// app.use('/api/identidad', require('./modules/identidad/rutas'));
-// app.use('/api/admision', require('./modules/admision/rutas'));
-// app.use('/api/atencion', require('./modules/atencion/rutas'));
+// Cada responsable registra aca las rutas de su modulo.
+// Identidad exporta { router }, no un router suelto en ./rutas.
+app.use('/api/identidad', require('./modules/identidad').router);
+app.use('/api/admision', require('./modules/admision/rutas'));
+app.use('/api/atencion', require('./modules/atencion/rutas'));
 app.use('/api/camas', require('./modules/camas/rutas'));
 app.use('/api/facturacion', require('./modules/facturacion/rutas'));
+app.use('/api/historia', require('./modules/historia/rutas'));
 
 // Manejo central de errores de negocio (ej: turno ya ocupado, transicion invalida)
 app.use((err, req, res, next) => {
