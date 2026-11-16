@@ -33,6 +33,17 @@ export async function listarNotas(pacienteId) {
 export const crearNota = (pacienteId, texto) =>
   pedir('/notas', { metodo: 'POST', cuerpo: { pacienteId, texto } });
 
+export async function listarAvisos() {
+  const filas = await pedir('/avisos');
+  return filas.map((a) => ({
+    id: a.id,
+    tipo: a.tipo,
+    paciente: `${a.paciente_apellido}, ${a.paciente_nombre}`,
+    medico: a.medico_id ? `${a.medico_apellido}, ${a.medico_nombre}` : '',
+  }));
+}
+export const cerrarAviso = (id) => pedir(`/avisos/${id}/cerrar`, { metodo: 'POST' });
+
 export const listarProtocolos = (pacienteId) => pedir(`/pacientes/${pacienteId}/protocolos`);
 export const realizarTarea = (tareaId) =>
   pedir(`/protocolo-tareas/${tareaId}/realizar`, { metodo: 'PATCH' });

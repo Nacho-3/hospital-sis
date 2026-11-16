@@ -75,3 +75,19 @@ CREATE TABLE IF NOT EXISTS protocolo_tareas (
   estado VARCHAR(20) NOT NULL DEFAULT 'pendiente'
     CHECK (estado IN ('pendiente', 'realizada'))
 );
+
+-- Avisos que Atencion recibe de Admision y muestra al medico.
+-- mostrador llega con TurnoEnSalaDeEspera. codigo_rojo, con TriajeRiesgoVital.
+CREATE TABLE IF NOT EXISTS avisos_clinicos (
+  id SERIAL PRIMARY KEY,
+  tipo VARCHAR(20) NOT NULL CHECK (tipo IN ('mostrador', 'codigo_rojo')),
+  paciente_id INTEGER NOT NULL REFERENCES pacientes (id),
+  turno_id INTEGER,
+  medico_id INTEGER REFERENCES usuarios (id),
+  creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  cerrado_en TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS avisos_clinicos_abiertos_idx
+  ON avisos_clinicos (creado_en)
+  WHERE cerrado_en IS NULL;

@@ -5,6 +5,7 @@ import SignosVitalesPanel from '../components/signosVitalesPanel.vue';
 import MedicacionPanel from '../components/medicacionPanel.vue';
 import NotasPanel from '../components/notasPanel.vue';
 import ProtocolosPanel from '../components/protocolosPanel.vue';
+import AvisosClinicos from '../components/avisosClinicos.vue';
 import { avisos } from '../services/avisos.js';
 
 const paciente = ref(null);
@@ -25,6 +26,8 @@ watch(paciente, () => { tabActiva.value = 'signos'; enHorario.value = 0; });
 <template>
   <section class="pagina pila">
     <h2>Atención y enfermería</h2>
+
+    <AvisosClinicos />
 
     <SelectorPaciente v-model="paciente" />
 

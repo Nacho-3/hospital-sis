@@ -43,6 +43,9 @@ function traducirErrorPg(err) {
       if (err.constraint === 'cola_guardia_posicion_uidx') {
         return new ConcurrenciaError('La cola de guardia se acaba de actualizar.');
       }
+      if (err.constraint === 'ingresos_observacion_paciente_tipo_key') {
+        return new DatosInvalidosError('Ese ingreso a observación ya fue confirmado.');
+      }
       return err;
     case '23503':
       if (/usuarios/.test(err.detail || '') || /medico/.test(err.constraint || '')) {

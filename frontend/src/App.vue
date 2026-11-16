@@ -15,7 +15,7 @@ watch(haySesion, (hay) => {
 
 <template>
   <header v-if="haySesion" class="barra">
-    <h1 class="barra__marca">Chotita</h1>
+    <h1 class="barra__marca">Hospital SIS</h1>
     <nav class="barra__nav">
       <router-link to="/" class="barra__link" active-class="" exact-active-class="barra__link--activo">Inicio</router-link>
       <router-link to="/admision" class="barra__link" active-class="barra__link--activo">Admisión</router-link>

@@ -211,6 +211,21 @@
     </table>
     <p v-if="!guardiaFilas.length" class="tenue">La guardia está vacía.</p>
 
+    <form class="tarjeta reserva__elegir" @submit.prevent="observar">
+      <strong>Observación</strong>
+      <p class="tenue">El pase queda confirmado. Atención arma el protocolo de ese ingreso.</p>
+      <div class="espera">
+        <label class="campo">Tipo
+          <select v-model="observacion.tipo" required>
+            <option value="pre_quirurgico">Prequirúrgico</option>
+            <option value="infeccion_respiratoria">Infección respiratoria</option>
+          </select>
+        </label>
+        <button class="btn btn--primario" :disabled="guardando || !pacienteId">Pasar a observación</button>
+      </div>
+      <p v-if="!pacienteId" class="tenue">Elegí arriba el paciente que pasa a observación.</p>
+    </form>
+
     <div class="avisos">
       <div v-for="a in avisos" :key="a.id" :class="['aviso', a.tipo !== 'ok' && `aviso--${a.tipo}`]">{{ a.texto }}</div>
     </div>
@@ -238,6 +253,7 @@ const paciente = reactive({ nombre: '', apellido: '', documento: '' });
 const turno = reactive({ medicoId: '', inicio: '', fin: '' });
 const espera = reactive({ medicoId: '', fecha: '' });
 const guardia = reactive({ enfermeroId: '', nivel: 'amarillo' });
+const observacion = reactive({ tipo: 'pre_quirurgico' });
 
 const NIVELES = {
   rojo: 'Código Rojo',
@@ -399,6 +415,21 @@ async function clasificar() {
     } else {
       avisar('Paciente clasificado en la guardia.');
     }
+  } catch (e) {
+    avisar(e.message, 'error');
+  } finally {
+    guardando.value = false;
+  }
+}
+
+async function observar() {
+  guardando.value = true;
+  try {
+    await admisionApi.ingresarObservacion({
+      pacienteId: Number(pacienteId.value),
+      tipoIngreso: observacion.tipo,
+    });
+    avisar('Pase a observación confirmado. Atención arma el protocolo.');
   } catch (e) {
     avisar(e.message, 'error');
   } finally {
