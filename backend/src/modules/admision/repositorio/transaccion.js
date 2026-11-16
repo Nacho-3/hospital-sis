@@ -40,6 +40,9 @@ function traducirErrorPg(err) {
       if (err.constraint === 'lista_espera_posicion_uidx') {
         return new ConcurrenciaError('La lista de espera se acaba de actualizar.');
       }
+      if (err.constraint === 'cola_guardia_posicion_uidx') {
+        return new ConcurrenciaError('La cola de guardia se acaba de actualizar.');
+      }
       return err;
     case '23503':
       if (/usuarios/.test(err.detail || '') || /medico/.test(err.constraint || '')) {

@@ -1,3 +1,5 @@
+const { DatosInvalidosError } = require('../dominio/errores');
+
 const SELECT_TURNO = `
   SELECT t.id, t.medico_id, t.paciente_id, t.inicio, t.fin, t.estado,
          t.es_entreturno, t.duracion_reducida,
@@ -129,6 +131,90 @@ async function existeMedico(db, medicoId) {
   return rowCount > 0;
 }
 
+async function listarEnfermeros(db) {
+  const { rows } = await db.query(
+    `SELECT u.id, u.nombre, u.apellido
+       FROM usuarios u
+       JOIN usuario_rol ur ON ur.usuario_id = u.id
+       JOIN roles r ON r.id = ur.rol_id
+      WHERE r.codigo = 'ENFERMERO' AND u.activo
+      ORDER BY u.apellido, u.nombre`
+  );
+  return rows;
+}
+
+async function existeEnfermero(db, enfermeroId) {
+  const { rowCount } = await db.query(
+    `SELECT 1
+       FROM usuarios u
+       JOIN usuario_rol ur ON ur.usuario_id = u.id
+       JOIN roles r ON r.id = ur.rol_id
+      WHERE u.id = $1 AND r.codigo = 'ENFERMERO' AND u.activo`,
+    [enfermeroId]
+  );
+  return rowCount > 0;
+}
+
+const SELECT_GUARDIA = `
+  SELECT c.id, c.paciente_id, c.enfermero_id, c.nivel, c.prioridad, c.posicion, c.estado,
+         p.nombre AS paciente_nombre, p.apellido AS paciente_apellido
+    FROM cola_guardia c
+    JOIN pacientes p ON p.id = c.paciente_id
+`;
+
+async function listarGuardia(db) {
+  const { rows } = await db.query(
+    `${SELECT_GUARDIA}
+      WHERE c.estado = 'en_espera'
+      ORDER BY c.posicion`
+  );
+  return rows;
+}
+
+async function obtenerIngreso(db, id) {
+  const { rows } = await db.query(`${SELECT_GUARDIA} WHERE c.id = $1`, [id]);
+  return rows[0] || null;
+}
+
+// Una sola cola. El lock cubre tambien el caso vacio, donde no hay filas
+// para trabar con FOR UPDATE. Se corre de atras hacia adelante, de a una
+// fila: el indice unico no deja sumar todas las posiciones en el mismo UPDATE.
+async function encolarGuardia(db, { pacienteId, enfermeroId, nivel, prioridad }) {
+  await db.query('SELECT pg_advisory_xact_lock(31, 1)');
+  const { rows: cola } = await db.query(
+    `SELECT id, paciente_id, prioridad, posicion
+       FROM cola_guardia
+      WHERE estado = 'en_espera'
+      ORDER BY posicion
+      FOR UPDATE`
+  );
+  if (cola.some((fila) => fila.paciente_id === pacienteId)) {
+    throw new DatosInvalidosError('Ese paciente ya está en la cola de guardia.');
+  }
+  const menosUrgente = cola.find((fila) => fila.prioridad > prioridad);
+  const posicion = menosUrgente
+    ? menosUrgente.posicion
+    : (cola.length ? cola[cola.length - 1].posicion + 1 : 1);
+  if (menosUrgente) {
+    const aCorrer = cola
+      .filter((fila) => fila.posicion >= posicion)
+      .sort((a, b) => b.posicion - a.posicion);
+    for (const fila of aCorrer) {
+      await db.query(
+        'UPDATE cola_guardia SET posicion = $1 WHERE id = $2',
+        [fila.posicion + 1, fila.id]
+      );
+    }
+  }
+  const { rows } = await db.query(
+    `INSERT INTO cola_guardia (paciente_id, enfermero_id, nivel, prioridad, posicion)
+     VALUES ($1, $2, $3, $4, $5)
+     RETURNING id`,
+    [pacienteId, enfermeroId, nivel, prioridad, posicion]
+  );
+  return obtenerIngreso(db, rows[0].id);
+}
+
 // El bloqueo es de la cola, no de una fila: la posicion nueva todavia no existe,
 // asi que FOR UPDATE no alcanza para que dos altas no calculen la misma.
 async function encolar(db, { pacienteId, medicoId, fecha }) {
@@ -237,6 +323,10 @@ module.exports = {
   achicarTurno,
   crearEntreturno,
   existeMedico,
+  listarEnfermeros,
+  existeEnfermero,
+  listarGuardia,
+  encolarGuardia,
   encolar,
   listarEspera,
   tomarPrimeroEnEspera,

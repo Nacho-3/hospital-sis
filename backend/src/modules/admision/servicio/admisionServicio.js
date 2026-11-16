@@ -7,6 +7,7 @@ const Turno = require('../dominio/Turno');
 const { publicar } = require('./publicar');
 const EVENTOS = require('../../../shared/events/eventos');
 
+const PRIORIDAD = { rojo: 1, naranja: 2, amarillo: 3, verde: 4, azul: 5 };
 const DURACION_PARTIBLE_MS = 30 * 60 * 1000;
 const MITAD_MS = 15 * 60 * 1000;
 const ZONA = 'America/Argentina/Buenos_Aires';
@@ -86,6 +87,14 @@ function listarTurnos() {
 
 function listarEspera() {
   return repo.listarEspera(pool);
+}
+
+function listarEnfermeros() {
+  return repo.listarEnfermeros(pool);
+}
+
+function listarGuardia() {
+  return repo.listarGuardia(pool);
 }
 
 // El "dado que el paciente está registrado" de la HU 1.1.
@@ -271,6 +280,40 @@ function atender(turnoId) {
   return transicionar(turnoId, 'atender');
 }
 
+// HU 3.1. Quien llega sin turno entra a la guardia segun el riesgo.
+// Un codigo rojo se ubica delante del primer paciente menos urgente y,
+// recien despues del COMMIT, avisa a Atencion.
+async function clasificarGuardia({ pacienteId, enfermeroId, nivel } = {}) {
+  const paciente = enteroPositivo(pacienteId, 'pacienteId');
+  const enfermero = enteroPositivo(enfermeroId, 'enfermeroId');
+  if (!Object.prototype.hasOwnProperty.call(PRIORIDAD, nivel)) {
+    throw new DatosInvalidosError('El nivel de triaje no es válido.');
+  }
+  const ingreso = await conTransaccion(async (db) => {
+    if (!(await repo.existePaciente(db, paciente))) {
+      throw new NoEncontradoError('el paciente', paciente);
+    }
+    if (!(await repo.existeEnfermero(db, enfermero))) {
+      throw new NoEncontradoError('el enfermero', enfermero);
+    }
+    return repo.encolarGuardia(db, {
+      pacienteId: paciente,
+      enfermeroId: enfermero,
+      nivel,
+      prioridad: PRIORIDAD[nivel],
+    });
+  });
+  if (nivel !== 'rojo') return { ingreso, aviso: null };
+  publicar([{
+    nombre: EVENTOS.TRIAJE_RIESGO_VITAL,
+    carga: { pacienteId: ingreso.paciente_id, nivel: 'rojo' },
+  }]);
+  return {
+    ingreso,
+    aviso: `Código Rojo: ${ingreso.paciente_apellido}, ${ingreso.paciente_nombre} entró en la guardia. Avisá a los médicos disponibles.`,
+  };
+}
+
 module.exports = {
   listarPacientes,
   listarMedicos,
@@ -285,4 +328,7 @@ module.exports = {
   confirmar,
   registrarLlegada,
   atender,
+  listarEnfermeros,
+  listarGuardia,
+  clasificarGuardia,
 };
