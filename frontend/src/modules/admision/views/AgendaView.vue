@@ -1,7 +1,7 @@
 <template>
   <section class="pagina">
     <h2>Reserva de turno</h2>
-    <p class="tenue">La recepcionista confirma un turno libre. Pasa a Programado y nadie más puede tomarlo. El coordinador puede partir uno de 30 minutos en dos de 15.</p>
+    <p class="tenue">La recepcionista confirma un turno libre. Pasa a Programado y nadie más puede tomarlo. El coordinador puede partir uno de 30 minutos en dos de 15. Si se cancela un turno, el primero de la lista de espera se queda con ese horario.</p>
 
     <div class="reserva">
       <form class="tarjeta" @submit.prevent="crearPaciente">
@@ -89,11 +89,59 @@
             >
               Entreturno
             </button>
+            <button
+              v-if="puedeCancelar(t)"
+              class="btn btn--peligro"
+              :disabled="guardando"
+              @click="cancelar(t)"
+            >
+              Cancelar
+            </button>
           </td>
         </tr>
       </tbody>
     </table>
     <p v-if="!turnos.length" class="tenue">No hay turnos. Abrí uno libre para poder reservarlo.</p>
+
+    <div v-if="llamado" class="aviso aviso--alerta llamado">{{ llamado }}</div>
+
+    <form class="tarjeta reserva__elegir" @submit.prevent="anotarEspera">
+      <strong>Lista de espera</strong>
+      <p class="tenue">Sin turno todavía. Si se cancela uno de ese médico en ese día, se llama al primero.</p>
+      <div class="espera">
+        <label class="campo">Médico
+          <select v-model="espera.medicoId" required>
+            <option value="">Elegir médico…</option>
+            <option v-for="m in medicos" :key="m.id" :value="m.id">{{ m.apellido }}, {{ m.nombre }}</option>
+          </select>
+        </label>
+        <label class="campo">Día
+          <input v-model="espera.fecha" type="date" required />
+        </label>
+        <button class="btn btn--primario" :disabled="guardando || !pacienteId">Anotar en la lista</button>
+      </div>
+      <p v-if="!pacienteId" class="tenue">Elegí arriba el paciente que queda en espera.</p>
+    </form>
+
+    <table class="tabla">
+      <thead>
+        <tr>
+          <th>Posición</th>
+          <th>Día</th>
+          <th>Médico</th>
+          <th>Paciente</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="e in esperaFilas" :key="e.id">
+          <td>{{ e.posicion }}</td>
+          <td>{{ diaLista(e.fecha) }}</td>
+          <td>{{ e.medico_apellido }}, {{ e.medico_nombre }}</td>
+          <td>{{ e.paciente_apellido }}, {{ e.paciente_nombre }}</td>
+        </tr>
+      </tbody>
+    </table>
+    <p v-if="!esperaFilas.length" class="tenue">Nadie está en la lista de espera.</p>
 
     <div class="avisos">
       <div v-for="a in avisos" :key="a.id" :class="['aviso', a.tipo !== 'ok' && `aviso--${a.tipo}`]">{{ a.texto }}</div>
@@ -108,13 +156,16 @@ import { admisionApi } from '../services/admisionApi';
 const pacientes = ref([]);
 const medicos = ref([]);
 const turnos = ref([]);
+const esperaFilas = ref([]);
 const pacienteId = ref('');
 const guardando = ref(false);
 const avisos = ref([]);
+const llamado = ref('');
 let siguiente = 0;
 
 const paciente = reactive({ nombre: '', apellido: '', documento: '' });
 const turno = reactive({ medicoId: '', inicio: '', fin: '' });
+const espera = reactive({ medicoId: '', fecha: '' });
 
 const ETIQUETAS = {
   disponible: 'Disponible',
@@ -137,6 +188,15 @@ function puedePartir(t) {
   return (t.estado === 'disponible' || t.estado === 'programado') && duraMediaHora(t);
 }
 
+function puedeCancelar(t) {
+  return t.estado === 'programado' || t.estado === 'confirmado';
+}
+
+function diaLista(fecha) {
+  const [anio, mes, dia] = String(fecha).slice(0, 10).split('-');
+  return `${dia}/${mes}/${anio}`;
+}
+
 function horario(t) {
   const inicio = new Date(t.inicio);
   const fin = new Date(t.fin);
@@ -148,21 +208,25 @@ function horario(t) {
 function avisar(texto, tipo = 'ok') {
   const id = ++siguiente;
   avisos.value.push({ id, tipo, texto });
+  const duracion = tipo === 'ok' ? 3500 : 8000;
   setTimeout(() => {
     avisos.value = avisos.value.filter((a) => a.id !== id);
-  }, tipo === 'error' ? 6000 : 3500);
+  }, duracion);
 }
 
 async function cargar() {
-  const [listaPacientes, listaMedicos, listaTurnos] = await Promise.all([
+  const [listaPacientes, listaMedicos, listaTurnos, listaEspera] = await Promise.all([
     admisionApi.pacientes(),
     admisionApi.medicos(),
     admisionApi.turnos(),
+    admisionApi.listaEspera(),
   ]);
   pacientes.value = listaPacientes;
   medicos.value = listaMedicos;
   turnos.value = listaTurnos;
+  esperaFilas.value = listaEspera;
   if (!turno.medicoId && listaMedicos.length) turno.medicoId = listaMedicos[0].id;
+  if (!espera.medicoId && listaMedicos.length) espera.medicoId = listaMedicos[0].id;
 }
 
 function fechaLocal(d) {
@@ -177,6 +241,7 @@ onMounted(async () => {
   const fin = new Date(inicio.getTime() + 30 * 60 * 1000);
   turno.inicio = fechaLocal(inicio);
   turno.fin = fechaLocal(fin);
+  espera.fecha = fechaLocal(inicio).slice(0, 10);
   try {
     await cargar();
   } catch (e) {
@@ -230,6 +295,43 @@ async function entreturno(fila) {
   }
 }
 
+async function anotarEspera() {
+  guardando.value = true;
+  try {
+    await admisionApi.anotarEnEspera({
+      pacienteId: Number(pacienteId.value),
+      medicoId: Number(espera.medicoId),
+      fecha: espera.fecha,
+    });
+    await cargar();
+    avisar('Paciente anotado en la lista de espera.');
+  } catch (e) {
+    avisar(e.message, 'error');
+  } finally {
+    guardando.value = false;
+  }
+}
+
+async function cancelar(fila) {
+  guardando.value = true;
+  try {
+    const resultado = await admisionApi.cancelar(fila.id);
+    await cargar();
+    if (resultado.asignado) {
+      llamado.value = resultado.asignado.aviso;
+      avisar(resultado.asignado.aviso, 'alerta');
+    } else {
+      llamado.value = '';
+      avisar('Turno cancelado. No había nadie en la lista de espera.');
+    }
+  } catch (e) {
+    await cargar();
+    avisar(e.message, 'error');
+  } finally {
+    guardando.value = false;
+  }
+}
+
 async function reservar(fila) {
   guardando.value = true;
   try {
@@ -272,7 +374,15 @@ async function reservar(fila) {
 .estado--programado { background: var(--color-primario); }
 .estado--cancelado { background: var(--color-peligro); }
 .tabla .badge { margin-left: var(--espacio-xs); }
+.espera {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: var(--espacio-md);
+  align-items: end;
+}
+.llamado { margin: var(--espacio-md) 0; }
 @media (max-width: 800px) {
   .reserva { grid-template-columns: 1fr; }
+  .espera { grid-template-columns: 1fr; }
 }
 </style>

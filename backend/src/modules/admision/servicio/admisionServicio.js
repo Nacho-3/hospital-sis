@@ -6,6 +6,7 @@ const { TurnoOcupadoError, NoEncontradoError, DatosInvalidosError } = require('.
 
 const DURACION_PARTIBLE_MS = 30 * 60 * 1000;
 const MITAD_MS = 15 * 60 * 1000;
+const ZONA = 'America/Argentina/Buenos_Aires';
 
 function enteroPositivo(valor, campo) {
   const n = Number(valor);
@@ -33,6 +34,41 @@ function instante(valor, campo) {
   return fecha.toISOString();
 }
 
+function fechaDia(valor) {
+  if (typeof valor !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(valor)) {
+    throw new DatosInvalidosError('La fecha tiene que tener formato AAAA-MM-DD.');
+  }
+  const [anio, mes, dia] = valor.split('-').map(Number);
+  const comprobacion = new Date(Date.UTC(anio, mes - 1, dia));
+  if (
+    comprobacion.getUTCFullYear() !== anio
+    || comprobacion.getUTCMonth() !== mes - 1
+    || comprobacion.getUTCDate() !== dia
+  ) {
+    throw new DatosInvalidosError('La fecha no existe.');
+  }
+  return valor;
+}
+
+// El dia del hospital es el calendario de Argentina. 11:00 de aca no es el dia UTC.
+function fechaEnArgentina(valor) {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: ZONA,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date(valor));
+}
+
+function horaEnArgentina(valor) {
+  return new Intl.DateTimeFormat('es-AR', {
+    timeZone: ZONA,
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).format(new Date(valor));
+}
+
 function listarPacientes() {
   return repo.listarPacientes(pool);
 }
@@ -43,6 +79,10 @@ function listarMedicos() {
 
 function listarTurnos() {
   return repo.listarTurnos(pool);
+}
+
+function listarEspera() {
+  return repo.listarEspera(pool);
 }
 
 // El "dado que el paciente está registrado" de la HU 1.1.
@@ -127,6 +167,67 @@ async function insertarEntreturno(turnoId) {
   });
 }
 
+// HU 1.3. Anotar en la cola de un medico y un dia. La posicion la calcula
+// la transaccion, con un lock de esa cola, para que dos altas no ocupen el mismo lugar.
+async function anotarEnEspera({ pacienteId, medicoId, fecha } = {}) {
+  const paciente = enteroPositivo(pacienteId, 'pacienteId');
+  const medico = enteroPositivo(medicoId, 'medicoId');
+  const dia = fechaDia(fecha);
+  return conTransaccion(async (db) => {
+    if (!(await repo.existePaciente(db, paciente))) {
+      throw new NoEncontradoError('el paciente', paciente);
+    }
+    if (!(await repo.existeMedico(db, medico))) {
+      throw new NoEncontradoError('el médico', medico);
+    }
+    return repo.encolar(db, { pacienteId: paciente, medicoId: medico, fecha: dia });
+  });
+}
+
+// HU 1.3. Cancelar es el disparador. En la misma transaccion:
+//   1. FOR UPDATE del turno. Si ya no se puede cancelar, se rechaza.
+//   2. Pasa a cancelado. El paciente original se queda en esa fila.
+//   3. Se toma la menor posicion en_espera de ese medico y ese dia.
+//   4. Se abre un turno nuevo, programado, en el mismo horario, para esa persona.
+// El insert va despues del update: recien ahi el cancelado deja de ocupar el rango.
+// Si no hay nadie en la cola, el turno queda cancelado y no hay a quien llamar.
+async function cancelar(turnoId) {
+  const id = enteroPositivo(turnoId, 'turnoId');
+  return conTransaccion(async (db) => {
+    const turno = await repo.bloquearTurno(db, id);
+    if (!turno) throw new NoEncontradoError('el turno', id);
+    if (turno.estado !== 'programado' && turno.estado !== 'confirmado') {
+      throw new TransicionInvalidaError('Solo se puede cancelar un turno programado o confirmado.');
+    }
+    if (!(await repo.marcarCancelado(db, id))) {
+      throw new TransicionInvalidaError('Solo se puede cancelar un turno programado o confirmado.');
+    }
+    const cancelado = await repo.obtenerTurno(db, id);
+    const espera = await repo.tomarPrimeroEnEspera(db, turno.medico_id, fechaEnArgentina(turno.inicio));
+    if (!espera) return { turno: cancelado, asignado: null };
+    const nuevo = await repo.crearTurnoAsignado(db, {
+      medicoId: turno.medico_id,
+      pacienteId: espera.paciente_id,
+      inicio: new Date(turno.inicio).toISOString(),
+      fin: new Date(turno.fin).toISOString(),
+      esEntreturno: turno.es_entreturno,
+      duracionReducida: turno.duracion_reducida,
+    });
+    if (!(await repo.marcarEsperaAsignada(db, espera.id, nuevo.id))) {
+      throw new TransicionInvalidaError('Esa persona ya no estaba primera en la lista.');
+    }
+    const apellido = nuevo.paciente_apellido;
+    const nombre = nuevo.paciente_nombre;
+    return {
+      turno: cancelado,
+      asignado: {
+        turno: nuevo,
+        aviso: `Llamá a ${apellido}, ${nombre}: quedó en el turno de las ${horaEnArgentina(nuevo.inicio)}.`,
+      },
+    };
+  });
+}
+
 module.exports = {
   listarPacientes,
   listarMedicos,
@@ -135,4 +236,7 @@ module.exports = {
   abrirTurno,
   reservar,
   insertarEntreturno,
+  listarEspera,
+  anotarEnEspera,
+  cancelar,
 };
