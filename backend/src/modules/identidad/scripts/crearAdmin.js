@@ -1,4 +1,5 @@
-require('dotenv').config();
+const path = require('node:path');
+require('dotenv').config({ path: path.resolve(__dirname, '../../../../.env') });
 const pool = require('../../../shared/db/pool');
 const usuariosServicio = require('../servicio/usuarios.servicio');
 const rolesServicio = require('../servicio/roles.servicio');
