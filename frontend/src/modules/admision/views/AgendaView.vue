@@ -248,8 +248,6 @@ import { reactive, ref, onMounted } from 'vue';
 import { admisionApi } from '../services/admisionApi';
 import { tienePermiso as puede } from '../../identidad/services/sesion.js';
 
-// Mismos codigos que backend/src/modules/admision/rutas/permisos.js.
-// La pantalla solo muestra lo que el rol puede hacer; el backend lo vuelve a controlar.
 const P = {
   REGISTRAR_PACIENTE: 'paciente:registrar',
   VER_AGENDA: 'agenda:ver',
@@ -262,7 +260,6 @@ const P = {
   VER_TRIAJE: 'triaje:ver',
 };
 const puedeAlgo = Object.values(P).some((p) => puede(p));
-// El selector de paciente lo usan la reserva, la lista de espera, la guardia y la observacion.
 const eligePaciente = [P.RESERVAR, P.ESPERA, P.REGISTRAR_TRIAJE, P.REGISTRAR_PACIENTE].some((p) => puede(p));
 
 const pacientes = ref([]);
@@ -343,7 +340,6 @@ function avisar(texto, tipo = 'ok') {
   }, duracion);
 }
 
-// Pide solo lo que el rol puede ver: el resto queda vacio y su seccion oculta.
 const sinPermiso = async () => [];
 async function cargar() {
   const [listaPacientes, listaMedicos, listaTurnos, listaEspera, listaEnfermeros, listaGuardia] = await Promise.all([

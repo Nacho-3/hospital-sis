@@ -1,6 +1,3 @@
-// Cliente HTTP de Admision. Vite reenvia /api al backend.
-// Manda el token de la sesion de Identidad; si el backend responde 401
-// (token vencido o usuario desactivado) se cierra la sesion y la app vuelve al login.
 import { token, cerrarSesion } from '../../identidad/services/sesion.js';
 
 const BASE = '/api/admision';
