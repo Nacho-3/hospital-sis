@@ -65,6 +65,28 @@ test('facturacion contra la base', { skip: !activo }, async (t) => {
     .map((c) => `${c.destinatario}:${c.monto}`)
     .sort();
 
+  await t.test('busca pacientes por nombre y apellido', async () => {
+    const extra = await fila(
+      `INSERT INTO pacientes (nombre, apellido, documento) VALUES ('José Ángel', $1, $2) RETURNING id`,
+      [`Núñez${marca}`, `TEST-FAC-${marca}-5`]
+    );
+    pacientes.push(extra.id);
+    const ids = async (q) => (await facturacion.buscarPacientes(q)).map((p) => p.id);
+
+    // Sin tildes ni mayusculas, nombre y apellido en cualquier orden, palabras incompletas.
+    assert.deepEqual(await ids(`jose nunez${marca}`), [extra.id]);
+    assert.deepEqual(await ids(`NUÑEZ${marca} ángel`), [extra.id]);
+    assert.deepEqual(await ids(`ang nun ${marca}`), [extra.id]);
+    // Todas las palabras tienen que estar.
+    assert.deepEqual(await ids(`jose nunez${marca} perez`), []);
+    // Un % se busca como texto, no como comodin.
+    assert.deepEqual(await ids('%%'), []);
+    // Devuelve lo que necesita la pantalla para distinguir homonimos.
+    const [encontrado] = await facturacion.buscarPacientes(`nunez${marca}`);
+    assert.deepEqual(Object.keys(encontrado).sort(), ['apellido', 'documento', 'id', 'nombre']);
+    await assert.rejects(facturacion.buscarPacientes('a'), DatosInvalidosError);
+  });
+
   await t.test('consultar la cuenta no la crea', async () => {
     const cuenta = await facturacion.cuentaDePaciente(sinCuenta.id);
     assert.equal(cuenta.cuentaId, null);

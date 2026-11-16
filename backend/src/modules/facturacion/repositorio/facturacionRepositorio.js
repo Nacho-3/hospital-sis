@@ -13,6 +13,29 @@ async function obtenerPaciente(db, pacienteId) {
   return rows[0] || null;
 }
 
+// Minusculas y sin tildes, para que "lopez" encuentre a "López". Las mayusculas
+// con tilde van en la lista porque lower() no las convierte en todas las configuraciones.
+const sinTildes = (expr) => `translate(lower(${expr}), 'áéíóúüñÁÉÍÓÚÜÑ', 'aeiouunaeiouun')`;
+
+// Escapa los comodines de LIKE para que un "%" o un "_" se busquen como texto.
+const literalLike = (texto) => texto.replace(/[\\%_]/g, (c) => `\\${c}`);
+
+// Pacientes cuyo nombre y apellido contienen todas las palabras, en cualquier orden.
+async function buscarPacientes(db, palabras, limite = 10) {
+  const condiciones = palabras.map(
+    (_, i) => `${sinTildes("p.nombre || ' ' || p.apellido")} LIKE '%' || ${sinTildes(`$${i + 1}`)} || '%'`
+  );
+  const { rows } = await db.query(
+    `SELECT p.id, p.nombre, p.apellido, p.documento
+       FROM pacientes p
+      WHERE ${condiciones.join(' AND ')}
+      ORDER BY p.apellido, p.nombre, p.id
+      LIMIT ${Number(limite)}`,
+    palabras.map(literalLike)
+  );
+  return rows;
+}
+
 // ---------- Coberturas ----------
 
 const SELECT_COBERTURA = 'SELECT c.id, c.nombre, c.tipo, c.copago_fijo::float8 AS copago_fijo FROM coberturas c';
@@ -165,6 +188,7 @@ async function existenCargosDeEvento(db, eventoOrigen) {
 
 module.exports = {
   obtenerPaciente,
+  buscarPacientes,
   listarCoberturas,
   obtenerCobertura,
   coberturaVigenteDePaciente,

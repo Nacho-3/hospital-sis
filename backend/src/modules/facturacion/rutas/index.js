@@ -16,6 +16,11 @@ router.get('/health', (req, res) => {
   res.json({ modulo: 'facturacion', status: 'activo' });
 });
 
+// Pacientes por nombre y apellido: ?q=ana rojas
+router.get('/pacientes', h(async (req, res) => {
+  res.json(await facturacion.buscarPacientes(req.query.q));
+}));
+
 // Catalogo de coberturas (para el selector del front).
 router.get('/coberturas', h(async (req, res) => {
   res.json(await facturacion.coberturas());

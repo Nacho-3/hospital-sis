@@ -38,4 +38,11 @@ function monto(valor, campo) {
   return valor;
 }
 
-module.exports = { enteroPositivo, texto, monto };
+// Texto de busqueda: de 2 a 80 caracteres, separado en palabras (como mucho 4).
+function busqueda(valor, campo) {
+  const t = texto(valor, campo, { max: 80 });
+  if (t.length < 2) throw new DatosInvalidosError(`${campo} tiene que tener al menos 2 caracteres.`);
+  return t.split(/\s+/).slice(0, 4);
+}
+
+module.exports = { enteroPositivo, texto, monto, busqueda };
