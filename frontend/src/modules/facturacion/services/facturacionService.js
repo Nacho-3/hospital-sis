@@ -28,6 +28,7 @@ async function pedir(ruta, { method = 'GET', body } = {}) {
 const paciente = (pacienteId) => encodeURIComponent(pacienteId);
 
 export const facturacionService = {
+  buscarPacientes: (texto) => pedir(`/pacientes?q=${encodeURIComponent(texto)}`),
   coberturas: () => pedir('/coberturas'),
   nomenclador: () => pedir('/nomenclador'),
   preciosInsumo: () => pedir('/precios-insumo'),
