@@ -1,7 +1,7 @@
 <template>
   <section class="pagina">
     <h2>Reserva de turno</h2>
-    <p class="tenue">La recepcionista confirma un turno libre. Pasa a Programado y nadie más puede tomarlo.</p>
+    <p class="tenue">La recepcionista confirma un turno libre. Pasa a Programado y nadie más puede tomarlo. El coordinador puede partir uno de 30 minutos en dos de 15.</p>
 
     <div class="reserva">
       <form class="tarjeta" @submit.prevent="crearPaciente">
@@ -61,7 +61,11 @@
       </thead>
       <tbody>
         <tr v-for="t in turnos" :key="t.id">
-          <td>{{ horario(t) }}</td>
+          <td>
+            {{ horario(t) }}
+            <span v-if="t.duracion_reducida" class="badge badge--alerta">Menos tiempo</span>
+            <span v-if="t.es_entreturno" class="badge badge--alerta">Entreturno</span>
+          </td>
           <td>{{ t.medico_apellido }}, {{ t.medico_nombre }}</td>
           <td><span :class="['estado', `estado--${t.estado}`]">{{ etiqueta(t.estado) }}</span></td>
           <td>
@@ -76,6 +80,14 @@
               @click="reservar(t)"
             >
               Reservar
+            </button>
+            <button
+              v-if="puedePartir(t)"
+              class="btn"
+              :disabled="guardando"
+              @click="entreturno(t)"
+            >
+              Entreturno
             </button>
           </td>
         </tr>
@@ -115,6 +127,14 @@ const ETIQUETAS = {
 
 function etiqueta(estado) {
   return ETIQUETAS[estado] || estado;
+}
+
+function duraMediaHora(t) {
+  return new Date(t.fin) - new Date(t.inicio) === 30 * 60 * 1000;
+}
+
+function puedePartir(t) {
+  return (t.estado === 'disponible' || t.estado === 'programado') && duraMediaHora(t);
 }
 
 function horario(t) {
@@ -196,6 +216,20 @@ async function crearTurno() {
   }
 }
 
+async function entreturno(fila) {
+  guardando.value = true;
+  try {
+    const resultado = await admisionApi.insertarEntreturno(fila.id);
+    await cargar();
+    avisar(`Quedó en 15 minutos y se abrió el entreturno de ${horario(resultado.entreturno)}.`);
+  } catch (e) {
+    await cargar();
+    avisar(e.message, 'error');
+  } finally {
+    guardando.value = false;
+  }
+}
+
 async function reservar(fila) {
   guardando.value = true;
   try {
@@ -237,6 +271,7 @@ async function reservar(fila) {
 .estado--disponible { background: var(--estado-disponible); }
 .estado--programado { background: var(--color-primario); }
 .estado--cancelado { background: var(--color-peligro); }
+.tabla .badge { margin-left: var(--espacio-xs); }
 @media (max-width: 800px) {
   .reserva { grid-template-columns: 1fr; }
 }
