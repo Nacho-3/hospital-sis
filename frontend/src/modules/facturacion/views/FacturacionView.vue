@@ -2,15 +2,7 @@
   <section class="pagina">
     <header class="tarjeta fac__cabecera">
       <h1>Facturación y Administración</h1>
-      <form class="fac__buscador" @submit.prevent="consultar">
-        <label class="campo">
-          <span>ID de paciente</span>
-          <input v-model.number="idBuscado" class="fac__id" type="number" min="1" step="1" required />
-        </label>
-        <button class="btn btn--primario" :disabled="cargando || !puedeVer">
-          {{ cargando ? 'Consultando…' : 'Consultar cuenta' }}
-        </button>
-      </form>
+      <BuscadorPaciente v-if="puedeVer" @elegir="consultar" @error="avisar($event, 'error')" />
     </header>
 
     <p v-if="!puedeVer" class="aviso aviso--error">Tu usuario no tiene permiso para consultar cuentas de pacientes.</p>
@@ -68,6 +60,7 @@
 
 <script setup>
 import { ref } from 'vue';
+import BuscadorPaciente from '../components/BuscadorPaciente.vue';
 import PanelCobertura from '../components/PanelCobertura.vue';
 import FormularioCargo from '../components/FormularioCargo.vue';
 import TablaCargos from '../components/TablaCargos.vue';
@@ -86,16 +79,14 @@ const SIMULACION_DISPONIBLE = import.meta.env.DEV;
 // El cargo de un evento se genera aparte, un instante despues de publicarlo.
 const ESPERA_EVENTO_MS = 500;
 
-const idBuscado = ref(null);
-// Datos del paciente consultado. Las acciones usan cuenta.pacienteId y no el
-// campo de busqueda, que puede haber cambiado sin volver a consultar.
+// Datos del paciente elegido. Las acciones usan cuenta.pacienteId y no el
+// texto del buscador, que puede haber cambiado sin elegir otro paciente.
 const cuenta = ref(null);
 const cobertura = ref(null);
 const coberturas = ref([]);
 const nomenclador = ref([]);
 const precios = ref([]);
 
-const cargando = ref(false);
 const guardando = ref(false);
 const error = ref('');
 const avisos = ref([]);
@@ -109,13 +100,12 @@ function avisar(texto, tipo = 'ok') {
   }, tipo === 'error' ? 6000 : 3500);
 }
 
-async function consultar() {
-  cargando.value = true;
+async function consultar(paciente) {
   error.value = '';
   try {
     const [datosCuenta, datosCobertura, catalogo, prestaciones, preciosVigentes] = await Promise.all([
-      facturacionService.obtenerCuenta(idBuscado.value),
-      facturacionService.obtenerCobertura(idBuscado.value),
+      facturacionService.obtenerCuenta(paciente.id),
+      facturacionService.obtenerCobertura(paciente.id),
       facturacionService.coberturas(),
       facturacionService.nomenclador(),
       facturacionService.preciosInsumo(),
@@ -130,8 +120,6 @@ async function consultar() {
     cuenta.value = null;
     cobertura.value = null;
     error.value = err.message;
-  } finally {
-    cargando.value = false;
   }
 }
 
@@ -199,8 +187,6 @@ function simularMedicacion({ insumoId, cantidad }) {
   gap: var(--espacio-md);
   margin-bottom: var(--espacio-md);
 }
-.fac__buscador { display: flex; align-items: flex-end; gap: var(--espacio-sm); }
-.fac__id { width: 120px; }
 .fac__error { color: var(--color-peligro); }
 .fac__resumen {
   display: grid;

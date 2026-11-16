@@ -17,7 +17,7 @@ Cuenta (id, paciente_id, estado, abierta_en, cerrada_en)      una sola activa po
 
 - `tipo` de cobertura: `publica`, `prepaga`, `particular`. Un paciente sin cobertura vigente se factura como particular.
 - `destinatario` de un cargo: `paciente`, `obra_social`, `estado`.
-- `pacientes` es de Admisión e `insumos` es de Camas: acá solo se leen.
+- `pacientes` es de Admisión e `insumos` es de Camas: acá solo se leen. La búsqueda de pacientes de la pantalla de Facturación lee `pacientes` mientras Admisión no tenga su propia búsqueda.
 - `nomenclador` guarda las prestaciones facturables con su valor base ("Consulta Médica General", $15.000).
 - `cargos.detalle` guarda el insumo y la cantidad de un cargo automático ("Ibuprofeno 400mg x1") o el código de la prestación.
 
@@ -84,6 +84,7 @@ Si falta el precio o el paciente no existe, no se guarda nada y el error queda e
 
 | Método y ruta | Qué hace |
 |---|---|
+| `GET /pacientes?q=` | Busca pacientes por nombre y apellido, en cualquier orden y sin importar tildes ni mayúsculas (como mucho 10) |
 | `GET /coberturas` | Catálogo de coberturas |
 | `GET /nomenclador` | Prestaciones facturables con su valor base |
 | `GET /precios-insumo` | Precio vigente de cada insumo |
