@@ -14,6 +14,7 @@ const routes = [
   { path: '/admision', component: () => import('./modules/admision/views/AgendaView.vue') },
   { path: '/atencion', component: () => import('./modules/atencion/views/atencionView.vue') },
   { path: '/camas', component: () => import('./modules/camas/views/CamasView.vue') },
+  { path: '/historia', component: () => import('./modules/historia/views/HistoriaView.vue') },
   { path: '/facturacion', component: () => import('./modules/facturacion/views/FacturacionView.vue') },
 ];
 
