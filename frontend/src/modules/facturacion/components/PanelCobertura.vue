@@ -12,7 +12,7 @@
       <template v-else>Sin copago fijo</template>
     </p>
 
-    <form class="cob__cambio" @submit.prevent="emit('cambiar', seleccion)">
+    <form v-if="editable" class="cob__cambio" @submit.prevent="emit('cambiar', seleccion)">
       <label class="campo">
         <span>Cambiar cobertura</span>
         <select v-model="seleccion">
@@ -35,6 +35,8 @@ const props = defineProps({
   // Catalogo para el selector.
   coberturas: { type: Array, required: true },
   ocupado: { type: Boolean, default: false },
+  // false: solo se muestra la cobertura (el usuario no tiene facturacion:calcular).
+  editable: { type: Boolean, default: true },
 });
 const emit = defineEmits(['cambiar']);
 
