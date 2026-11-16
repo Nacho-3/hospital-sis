@@ -65,10 +65,13 @@ async function obtenerTurno(db, turnoId) {
 }
 
 // Bloqueo pesimista. La fila queda tomada hasta el COMMIT o el ROLLBACK
-// de esta transaccion. La otra reserva del mismo turno espera aca.
+// de esta transaccion. La otra operacion sobre el mismo turno espera aca.
 async function bloquearTurno(db, turnoId) {
   const { rows } = await db.query(
-    'SELECT id, estado, paciente_id FROM turnos WHERE id = $1 FOR UPDATE',
+    `SELECT id, estado, paciente_id, medico_id, inicio, fin
+       FROM turnos
+      WHERE id = $1
+      FOR UPDATE`,
     [turnoId]
   );
   return rows[0] || null;
@@ -87,6 +90,32 @@ async function marcarProgramado(db, turnoId, pacienteId) {
   return rows[0] || null;
 }
 
+// HU 1.2. Achica el fin del turno que ya estaba. El WHERE exige que el fin
+// nuevo quede antes del actual: si otra transaccion ya lo partio, no escribe.
+async function achicarTurno(db, turnoId, finNuevo) {
+  const { rows } = await db.query(
+    `UPDATE turnos
+        SET fin = $2, duracion_reducida = TRUE, actualizado_en = NOW()
+      WHERE id = $1
+        AND fin > $2
+        AND estado IN ('disponible', 'programado')
+      RETURNING id`,
+    [turnoId, finNuevo]
+  );
+  return rows[0] || null;
+}
+
+// El entreturno nace libre. es_entreturno lo marca para la agenda del medico.
+async function crearEntreturno(db, { medicoId, inicio, fin }) {
+  const { rows } = await db.query(
+    `INSERT INTO turnos (medico_id, inicio, fin, es_entreturno)
+     VALUES ($1, $2, $3, TRUE)
+     RETURNING id`,
+    [medicoId, inicio, fin]
+  );
+  return obtenerTurno(db, rows[0].id);
+}
+
 module.exports = {
   crearPaciente,
   listarPacientes,
@@ -97,4 +126,6 @@ module.exports = {
   obtenerTurno,
   bloquearTurno,
   marcarProgramado,
+  achicarTurno,
+  crearEntreturno,
 };

@@ -33,4 +33,9 @@ router.post('/turnos/:id/reservar', h(async (req, res) => {
   res.json(await admision.reservar(req.params.id, req.body));
 }));
 
+// HU 1.2. 201: aparece un turno nuevo. El cuerpo trae el achicado y el entreturno.
+router.post('/turnos/:id/entreturno', h(async (req, res) => {
+  res.status(201).json(await admision.insertarEntreturno(req.params.id));
+}));
+
 module.exports = router;

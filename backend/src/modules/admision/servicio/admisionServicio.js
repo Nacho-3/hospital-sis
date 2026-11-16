@@ -1,7 +1,11 @@
 const pool = require('../../../shared/db/pool');
 const repo = require('../repositorio/admisionRepositorio');
 const { conTransaccion } = require('../repositorio/transaccion');
+const { TransicionInvalidaError } = require('../../../shared/errors/DomainError');
 const { TurnoOcupadoError, NoEncontradoError, DatosInvalidosError } = require('../dominio/errores');
+
+const DURACION_PARTIBLE_MS = 30 * 60 * 1000;
+const MITAD_MS = 15 * 60 * 1000;
 
 function enteroPositivo(valor, campo) {
   const n = Number(valor);
@@ -89,6 +93,40 @@ async function reservar(turnoId, { pacienteId } = {}) {
   });
 }
 
+// HU 1.2. El coordinador parte el turno de 30 minutos (10:00–10:30) en dos de 15.
+// El corte queda en el medio: no se acepta otra hora, porque la historia es esa.
+// Orden dentro de la misma transaccion:
+//   1. FOR UPDATE. El otro coordinador espera y despues ve el turno ya achicado.
+//   2. UPDATE del fin a las 10:15 y duracion_reducida. El paciente, si lo habia, se queda.
+//   3. INSERT del entreturno 10:15–10:30, libre. El rango es [inicio, fin), asi que
+//      se tocan en las 10:15 y no se pisan.
+// Si se insertara antes de achicar, turnos_sin_solape rechazaria el hueco.
+async function insertarEntreturno(turnoId) {
+  const id = enteroPositivo(turnoId, 'turnoId');
+  return conTransaccion(async (db) => {
+    const turno = await repo.bloquearTurno(db, id);
+    if (!turno) throw new NoEncontradoError('el turno', id);
+    if (turno.estado !== 'disponible' && turno.estado !== 'programado') {
+      throw new TransicionInvalidaError('Solo se puede achicar un turno disponible o programado.');
+    }
+    const inicio = new Date(turno.inicio);
+    const fin = new Date(turno.fin);
+    if (fin.getTime() - inicio.getTime() !== DURACION_PARTIBLE_MS) {
+      throw new DatosInvalidosError('Solo se puede insertar un entreturno partiendo un turno de 30 minutos.');
+    }
+    const corte = new Date(inicio.getTime() + MITAD_MS).toISOString();
+    if (!(await repo.achicarTurno(db, id, corte))) {
+      throw new DatosInvalidosError('Solo se puede insertar un entreturno partiendo un turno de 30 minutos.');
+    }
+    const entreturno = await repo.crearEntreturno(db, {
+      medicoId: turno.medico_id,
+      inicio: corte,
+      fin: fin.toISOString(),
+    });
+    return { turno: await repo.obtenerTurno(db, id), entreturno };
+  });
+}
+
 module.exports = {
   listarPacientes,
   listarMedicos,
@@ -96,4 +134,5 @@ module.exports = {
   registrarPaciente,
   abrirTurno,
   reservar,
+  insertarEntreturno,
 };
