@@ -5,7 +5,7 @@ const { COBERTURA_PARTICULAR, DESTINATARIOS, calcularDistribucionCargo } = requi
 const { aCentavos, aPesos, sumar } = require('../dominio/dinero');
 const repo = require('../repositorio/facturacionRepositorio');
 const { conTransaccion } = require('../repositorio/transaccion');
-const { enteroPositivo, texto, monto } = require('./validar');
+const { enteroPositivo, texto, monto, busqueda } = require('./validar');
 
 // unique_violation de PostgreSQL.
 const PG_VIOLACION_UNICA = '23505';
@@ -23,6 +23,13 @@ async function pacienteExistente(db, pacienteId) {
   const paciente = await repo.obtenerPaciente(db, pacienteId);
   if (!paciente) throw new NoEncontradoError('el paciente', pacienteId);
   return paciente;
+}
+
+// ---------- Pacientes ----------
+
+// Busca por nombre y apellido, en cualquier orden y sin importar tildes ni mayusculas.
+async function buscarPacientes(q) {
+  return repo.buscarPacientes(pool, busqueda(q, 'La busqueda'));
 }
 
 // ---------- Cobertura ----------
@@ -204,6 +211,7 @@ async function preciosVigentes() {
 }
 
 module.exports = {
+  buscarPacientes,
   coberturas,
   coberturaDePaciente,
   asignarCobertura,

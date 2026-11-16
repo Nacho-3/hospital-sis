@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { enteroPositivo, texto, monto } = require('../servicio/validar');
+const { enteroPositivo, texto, monto, busqueda } = require('../servicio/validar');
 const { DatosInvalidosError } = require('../dominio/errores');
 
 test('enteroPositivo acepta el numero o su texto en digitos', () => {
@@ -30,5 +30,16 @@ test('monto acepta numeros positivos con centavos', () => {
 test('monto rechaza cero, negativos, texto, mas de dos decimales y montos fuera de rango', () => {
   for (const valor of [0, -10, '8500', NaN, Infinity, 10.005, 1e12, null, undefined]) {
     assert.throws(() => monto(valor, 'monto'), DatosInvalidosError, `valor: ${String(valor)}`);
+  }
+});
+
+test('busqueda separa en palabras, ignora espacios de mas y toma como mucho 4', () => {
+  assert.deepEqual(busqueda('  ana   rojas ', 'q'), ['ana', 'rojas']);
+  assert.deepEqual(busqueda('a b c d e f', 'q'), ['a', 'b', 'c', 'd']);
+});
+
+test('busqueda rechaza vacio, un solo caracter y textos largos', () => {
+  for (const valor of [undefined, '', '   ', 'a', 'x'.repeat(81)]) {
+    assert.throws(() => busqueda(valor, 'q'), DatosInvalidosError, `valor: ${String(valor)}`);
   }
 });
