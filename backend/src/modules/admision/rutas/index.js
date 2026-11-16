@@ -77,4 +77,9 @@ router.post('/guardia', h(async (req, res) => {
   res.status(201).json(await admision.clasificarGuardia(req.body));
 }));
 
+// Despues del COMMIT, Atencion recibe PacienteIngresado y arma el protocolo.
+router.post('/observacion', h(async (req, res) => {
+  res.status(201).json(await admision.ingresarObservacion(req.body));
+}));
+
 module.exports = router;

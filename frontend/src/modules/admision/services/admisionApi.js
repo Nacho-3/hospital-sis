@@ -36,4 +36,5 @@ export const admisionApi = {
   enfermeros: () => pedir('/enfermeros'),
   guardia: () => pedir('/guardia'),
   clasificarGuardia: (datos) => post('/guardia', datos),
+  ingresarObservacion: (datos) => post('/observacion', datos),
 };

@@ -310,6 +310,16 @@ async function crearTurnoAsignado(db, { medicoId, pacienteId, inicio, fin, esEnt
   return obtenerTurno(db, rows[0].id);
 }
 
+async function crearIngresoObservacion(db, { pacienteId, tipo }) {
+  const { rows } = await db.query(
+    `INSERT INTO ingresos_observacion (paciente_id, tipo)
+     VALUES ($1, $2)
+     RETURNING id, paciente_id, tipo, creado_en`,
+    [pacienteId, tipo]
+  );
+  return rows[0];
+}
+
 module.exports = {
   crearPaciente,
   listarPacientes,
@@ -334,4 +344,5 @@ module.exports = {
   marcarCancelado,
   cambiarEstado,
   crearTurnoAsignado,
+  crearIngresoObservacion,
 };

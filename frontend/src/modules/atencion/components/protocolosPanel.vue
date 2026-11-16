@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch } from 'vue';
+import { onUnmounted, ref, watch } from 'vue';
 import { listarProtocolos, realizarTarea } from '../services/atencionService.js';
 import { avisar } from '../services/avisos.js';
 import { fechaHora } from '../services/formato.js';
@@ -10,11 +10,17 @@ const protocolos = ref([]);
 
 const realizadas = (p) => p.tareas.filter((t) => t.estado === 'realizada').length;
 const completo = (p) => realizadas(p) === p.tareas.length;
+let reloj;
 
 async function cargar() {
   protocolos.value = props.pacienteId ? await listarProtocolos(props.pacienteId) : [];
 }
-watch(() => props.pacienteId, () => cargar().catch((e) => avisar(e.message, 'error')), { immediate: true });
+watch(() => props.pacienteId, () => {
+  clearInterval(reloj);
+  cargar().catch((e) => avisar(e.message, 'error'));
+  if (props.pacienteId) reloj = setInterval(() => cargar().catch(() => {}), 4000);
+}, { immediate: true });
+onUnmounted(() => clearInterval(reloj));
 
 async function marcar(tarea) {
   try { await realizarTarea(tarea.id); await cargar(); }

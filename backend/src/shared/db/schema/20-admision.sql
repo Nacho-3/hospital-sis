@@ -117,6 +117,17 @@ CREATE UNIQUE INDEX IF NOT EXISTS cola_guardia_posicion_uidx
 CREATE INDEX IF NOT EXISTS cola_guardia_prioridad_idx
   ON cola_guardia (prioridad, posicion);
 
+-- Pase a observacion. Despues del COMMIT se publica PacienteIngresado.
+-- El protocolo lo arma Atencion. El mismo tipo no se confirma dos veces.
+CREATE TABLE IF NOT EXISTS ingresos_observacion (
+  id SERIAL PRIMARY KEY,
+  paciente_id INTEGER NOT NULL REFERENCES pacientes (id),
+  tipo VARCHAR(40) NOT NULL
+    CHECK (tipo IN ('pre_quirurgico', 'infeccion_respiratoria')),
+  creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT ingresos_observacion_paciente_tipo_key UNIQUE (paciente_id, tipo)
+);
+
 -- Escenario de la HU 1.1: el turno de las 10:00 es del Dr. Silva.
 -- usuarios lo administra Identidad. Esta fila existe para poder reservar
 -- mientras ese modulo no da de alta medicos. No es una contraseña de acceso.

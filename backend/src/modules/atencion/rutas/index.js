@@ -5,11 +5,13 @@ const administracionesService = require('../servicio/administracionesService');
 const indicacionService = require('../servicio/indicacionService');
 const notasService = require('../servicio/notasService');
 const protocoloService = require('../servicio/protocoloService');
+const avisosService = require('../servicio/avisosService');
 const ah = (fn) => (req, res, next) => fn(req, res, next).catch(next);   // necesario en Express 4
 const autenticar = require('../../identidad/middlewares/autenticar');
 const requierePermiso = require('../../identidad/middlewares/requierePermiso');
 
 protocoloService.registrarListeners();
+avisosService.registrarListeners();
 
 router.post('/signos-vitales', autenticar, requierePermiso('signos_vitales:registrar'), ah(async (req, res) => {
   const { pacienteId, camaId, presionSistolica, presionDiastolica, frecuenciaCardiaca, temperatura } = req.body;
@@ -55,6 +57,14 @@ router.get('/administraciones/pendientes', autenticar, requierePermiso('indicaci
 router.post('/indicaciones', autenticar, requierePermiso('indicacion:prescribir'), ah(async (req, res) => {
   const indicacion = await indicacionService.crear({ ...req.body, medicoId: req.usuario.id });
   res.status(201).json(indicacion);
+}));
+
+router.get('/avisos', autenticar, requierePermiso('triaje:ver'), ah(async (req, res) => {
+  res.json(await avisosService.listarAbiertos());
+}));
+
+router.post('/avisos/:id/cerrar', autenticar, requierePermiso('triaje:ver'), ah(async (req, res) => {
+  res.json(await avisosService.cerrar(req.params.id));
 }));
 
 router.get('/pacientes', autenticar, requierePermiso('signos_vitales:ver'), ah(async (req, res) => {

@@ -8,6 +8,7 @@ const { publicar } = require('./publicar');
 const EVENTOS = require('../../../shared/events/eventos');
 
 const PRIORIDAD = { rojo: 1, naranja: 2, amarillo: 3, verde: 4, azul: 5 };
+const TIPOS_INGRESO = new Set(['pre_quirurgico', 'infeccion_respiratoria']);
 const DURACION_PARTIBLE_MS = 30 * 60 * 1000;
 const MITAD_MS = 15 * 60 * 1000;
 const ZONA = 'America/Argentina/Buenos_Aires';
@@ -314,6 +315,26 @@ async function clasificarGuardia({ pacienteId, enfermeroId, nivel } = {}) {
   };
 }
 
+// El protocolo no se arma aca. Atencion lo construye al recibir el evento,
+// y el evento sale despues del COMMIT.
+async function ingresarObservacion({ pacienteId, tipoIngreso } = {}) {
+  const paciente = enteroPositivo(pacienteId, 'pacienteId');
+  if (!TIPOS_INGRESO.has(tipoIngreso)) {
+    throw new DatosInvalidosError('El tipo de ingreso no es válido.');
+  }
+  const ingreso = await conTransaccion(async (db) => {
+    if (!(await repo.existePaciente(db, paciente))) {
+      throw new NoEncontradoError('el paciente', paciente);
+    }
+    return repo.crearIngresoObservacion(db, { pacienteId: paciente, tipo: tipoIngreso });
+  });
+  publicar([{
+    nombre: EVENTOS.PACIENTE_INGRESADO,
+    carga: { pacienteId: ingreso.paciente_id, tipoIngreso: ingreso.tipo },
+  }]);
+  return ingreso;
+}
+
 module.exports = {
   listarPacientes,
   listarMedicos,
@@ -331,4 +352,5 @@ module.exports = {
   listarEnfermeros,
   listarGuardia,
   clasificarGuardia,
+  ingresarObservacion,
 };
