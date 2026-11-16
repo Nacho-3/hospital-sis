@@ -30,4 +30,7 @@ export const admisionApi = {
   listaEspera: () => pedir('/lista-espera'),
   anotarEnEspera: (datos) => post('/lista-espera', datos),
   cancelar: (turnoId) => post(`/turnos/${turnoId}/cancelar`),
+  confirmar: (turnoId) => post(`/turnos/${turnoId}/confirmar`),
+  registrarLlegada: (turnoId) => post(`/turnos/${turnoId}/llegada`),
+  atender: (turnoId) => post(`/turnos/${turnoId}/atender`),
 };

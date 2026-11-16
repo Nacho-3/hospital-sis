@@ -3,6 +3,9 @@ const repo = require('../repositorio/admisionRepositorio');
 const { conTransaccion } = require('../repositorio/transaccion');
 const { TransicionInvalidaError } = require('../../../shared/errors/DomainError');
 const { TurnoOcupadoError, NoEncontradoError, DatosInvalidosError } = require('../dominio/errores');
+const Turno = require('../dominio/Turno');
+const { publicar } = require('./publicar');
+const EVENTOS = require('../../../shared/events/eventos');
 
 const DURACION_PARTIBLE_MS = 30 * 60 * 1000;
 const MITAD_MS = 15 * 60 * 1000;
@@ -126,7 +129,9 @@ async function reservar(turnoId, { pacienteId } = {}) {
     if (!(await repo.existePaciente(db, paciente))) {
       throw new NoEncontradoError('el paciente', paciente);
     }
-    if (turno.estado !== 'disponible' || !(await repo.marcarProgramado(db, id, paciente))) {
+    const dominio = Turno.desdeFila(turno);
+    dominio.reservar();
+    if (!(await repo.marcarProgramado(db, id, paciente))) {
       throw new TurnoOcupadoError();
     }
     return repo.obtenerTurno(db, id);
@@ -196,9 +201,7 @@ async function cancelar(turnoId) {
   return conTransaccion(async (db) => {
     const turno = await repo.bloquearTurno(db, id);
     if (!turno) throw new NoEncontradoError('el turno', id);
-    if (turno.estado !== 'programado' && turno.estado !== 'confirmado') {
-      throw new TransicionInvalidaError('Solo se puede cancelar un turno programado o confirmado.');
-    }
+    Turno.desdeFila(turno).cancelar();
     if (!(await repo.marcarCancelado(db, id))) {
       throw new TransicionInvalidaError('Solo se puede cancelar un turno programado o confirmado.');
     }
@@ -228,6 +231,46 @@ async function cancelar(turnoId) {
   });
 }
 
+// Aplica la operacion del patron State y persiste solo si la fila sigue
+// en el estado que se leyo. El FOR UPDATE ya ordeno a la otra transaccion.
+async function transicionar(turnoId, operacion) {
+  const id = enteroPositivo(turnoId, 'turnoId');
+  return conTransaccion(async (db) => {
+    const fila = await repo.bloquearTurno(db, id);
+    if (!fila) throw new NoEncontradoError('el turno', id);
+    const dominio = Turno.desdeFila(fila);
+    const desde = dominio.nombreEstado;
+    dominio[operacion]();
+    if (!(await repo.cambiarEstado(db, id, desde, dominio.nombreEstado))) {
+      throw new TransicionInvalidaError(`No se pudo pasar el turno a ${dominio.nombreEstado}.`);
+    }
+    return repo.obtenerTurno(db, id);
+  });
+}
+
+function confirmar(turnoId) {
+  return transicionar(turnoId, 'confirmar');
+}
+
+// HU 2.1. El paciente llega al mostrador. El evento sale despues del COMMIT:
+// Atencion no tiene que enterarse de una llegada que despues se revirtio.
+async function registrarLlegada(turnoId) {
+  const turno = await transicionar(turnoId, 'recibir');
+  publicar([{
+    nombre: EVENTOS.TURNO_EN_SALA_DE_ESPERA,
+    carga: {
+      turnoId: turno.id,
+      pacienteId: turno.paciente_id,
+      medicoId: turno.medico_id,
+    },
+  }]);
+  return turno;
+}
+
+function atender(turnoId) {
+  return transicionar(turnoId, 'atender');
+}
+
 module.exports = {
   listarPacientes,
   listarMedicos,
@@ -239,4 +282,7 @@ module.exports = {
   listarEspera,
   anotarEnEspera,
   cancelar,
+  confirmar,
+  registrarLlegada,
+  atender,
 };

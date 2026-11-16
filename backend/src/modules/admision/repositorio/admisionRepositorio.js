@@ -189,6 +189,17 @@ async function marcarEsperaAsignada(db, esperaId, turnoId) {
   return rows[0] || null;
 }
 
+async function cambiarEstado(db, turnoId, desde, hacia) {
+  const { rows } = await db.query(
+    `UPDATE turnos
+        SET estado = $3, actualizado_en = NOW()
+      WHERE id = $1 AND estado = $2
+      RETURNING id`,
+    [turnoId, desde, hacia]
+  );
+  return rows[0] || null;
+}
+
 async function marcarCancelado(db, turnoId) {
   const { rows } = await db.query(
     `UPDATE turnos
@@ -231,5 +242,6 @@ module.exports = {
   tomarPrimeroEnEspera,
   marcarEsperaAsignada,
   marcarCancelado,
+  cambiarEstado,
   crearTurnoAsignado,
 };

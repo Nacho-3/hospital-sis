@@ -51,4 +51,17 @@ router.post('/turnos/:id/cancelar', h(async (req, res) => {
   res.json(await admision.cancelar(req.params.id));
 }));
 
+// HU 2.1. Confirmar, llegar al mostrador y cerrar la consulta.
+router.post('/turnos/:id/confirmar', h(async (req, res) => {
+  res.json(await admision.confirmar(req.params.id));
+}));
+
+router.post('/turnos/:id/llegada', h(async (req, res) => {
+  res.json(await admision.registrarLlegada(req.params.id));
+}));
+
+router.post('/turnos/:id/atender', h(async (req, res) => {
+  res.json(await admision.atender(req.params.id));
+}));
+
 module.exports = router;
