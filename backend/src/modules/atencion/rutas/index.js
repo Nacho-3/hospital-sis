@@ -54,6 +54,10 @@ router.get('/administraciones/pendientes', autenticar, requierePermiso('indicaci
   res.json(await administracionesService.listarPendientes(req.query.pacienteId));
 }));
 
+router.get('/pacientes/:pacienteId/medicamentos', autenticar, requierePermiso('indicacion:prescribir'), ah(async (req, res) => {
+  res.json(await indicacionService.medicamentosParaPaciente(req.params.pacienteId));
+}));
+
 router.post('/indicaciones', autenticar, requierePermiso('indicacion:prescribir'), ah(async (req, res) => {
   const indicacion = await indicacionService.crear({ ...req.body, medicoId: req.usuario.id });
   res.status(201).json(indicacion);

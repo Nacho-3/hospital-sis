@@ -3,6 +3,12 @@ import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { listarPendientes, confirmarAdministracion } from '../services/atencionService.js';
 import { avisar } from '../services/avisos.js';
 import { fechaHora } from '../services/formato.js';
+import { tienePermiso } from '../../identidad/services/sesion.js';
+import RecetaForm from './recetaForm.vue';
+
+// El medico receta; enfermeria confirma cada dosis (y ahi Camas descuenta el stock).
+const puedeRecetar = tienePermiso('indicacion:prescribir');
+const puedeAdministrar = tienePermiso('medicacion:administrar');
 
 const props = defineProps({ pacienteId: { type: Number, default: null } });
 const emit = defineEmits(['en-horario']);
@@ -42,6 +48,8 @@ async function confirmar(p) {
 </script>
 
 <template>
+  <div class="pila">
+  <RecetaForm v-if="puedeRecetar" :paciente-id="pacienteId" @creada="cargar" />
   <div class="tarjeta">
     <table class="tabla">
       <thead>
@@ -58,13 +66,15 @@ async function confirmar(p) {
             <span v-else class="tenue">Próxima</span>
           </td>
           <td class="num">
-            <button class="btn btn--primario"
+            <button v-if="puedeAdministrar" class="btn btn--primario"
                     :disabled="estadoDe(p) !== 'en-horario' || confirmando === p.id"
                     @click="confirmar(p)">Confirmar administración</button>
+            <span v-else class="tenue">La confirma enfermería</span>
           </td>
         </tr>
         <tr v-if="!pendientes.length"><td colspan="5" class="tenue">No hay dosis pendientes.</td></tr>
       </tbody>
     </table>
+  </div>
   </div>
 </template>

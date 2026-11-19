@@ -1,5 +1,7 @@
 const indicacionesRepo = require('../repositorio/indicacionesRepo');
 const admRepo = require('../repositorio/administracionesRepo');
+const medicamentosRepo = require('../repositorio/medicamentosRepo');
+const pool = require('../../../shared/db/pool');
 const { conTransaccion } = require('../../../shared/db/transaccion');
 const { ErrorNegocio } = require('../dominio/errores');
 
@@ -45,4 +47,22 @@ async function crear({ pacienteId, medicoId, insumoId, dosis, intervaloHoras, ma
   });
 }
 
-module.exports = { crear };
+// Lo que el medico necesita para recetar: los medicamentos y, si el paciente
+// esta internado, el stock de su piso (de ahi lo descuenta Camas al confirmar
+// cada dosis).
+async function medicamentosParaPaciente(pacienteId) {
+  const paciente = enteroPositivo(pacienteId, 'pacienteId');
+  const piso = await medicamentosRepo.pisoDelPaciente(pool, paciente);
+  const filas = await medicamentosRepo.listarConStock(pool, piso);
+  return {
+    piso,
+    medicamentos: filas.map((f) => ({
+      id: f.id,
+      nombre: f.nombre,
+      unidad: f.unidad_medida,
+      stock: f.stock_actual,
+    })),
+  };
+}
+
+module.exports = { crear, medicamentosParaPaciente };
