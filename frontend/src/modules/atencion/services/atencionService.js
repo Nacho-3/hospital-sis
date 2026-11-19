@@ -26,6 +26,12 @@ export async function listarPendientes(pacienteId) {
 export const confirmarAdministracion = (id) =>
   pedir(`/administraciones/${id}/confirmar`, { metodo: 'POST' });
 
+// Medicamentos para recetar y el stock del piso donde esta internado el paciente.
+export const listarMedicamentos = (pacienteId) =>
+  pedir(`/pacientes/${pacienteId}/medicamentos`);
+export const crearIndicacion = (datos) =>
+  pedir('/indicaciones', { metodo: 'POST', cuerpo: datos });
+
 export async function listarNotas(pacienteId) {
   const filas = await pedir(`/pacientes/${pacienteId}/notas`);
   return filas.map((n) => ({ id: n.id, texto: n.texto, automatica: n.automatica, creadoEn: n.creado_en }));
