@@ -59,7 +59,7 @@ async function confirmar(p) {
         <tr v-for="p in pendientes" :key="p.id">
           <td>{{ fechaHora(p.programadaPara) }}</td>
           <td>{{ p.insumo }}</td>
-          <td>{{ p.dosis }}</td>
+          <td>{{ p.dosis }} <span class="tenue">· {{ p.cantidad }} u.</span></td>
           <td>
             <span v-if="estadoDe(p) === 'en-horario'" class="badge badge--exito">En horario</span>
             <span v-else-if="estadoDe(p) === 'vencida'" class="badge">Vencida</span>

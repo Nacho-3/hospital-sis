@@ -93,12 +93,20 @@ test('el medico receta, enfermeria confirma y Camas descuenta el stock del piso'
   // Enfermeria no receta.
   assert.equal((await api(`/atencion/pacientes/${ids.paciente}/medicamentos`, ENFERMERO)).status, 403);
 
-  // 2. El medico receta; la primera dosis queda pendiente ahora.
+  // Las unidades por dosis tienen que ser un entero positivo.
+  const invalida = await api('/atencion/indicaciones', MEDICO, 'POST', {
+    pacienteId: ids.paciente, insumoId: ibuprofeno.id, dosis: '800 mg', cantidad: 0,
+    intervaloHoras: 8, primeraDosis: new Date().toISOString(),
+  });
+  assert.equal(invalida.status, 400);
+
+  // 2. El medico receta 2 unidades por dosis; la primera queda pendiente ahora.
   const receta = await api('/atencion/indicaciones', MEDICO, 'POST', {
-    pacienteId: ids.paciente, insumoId: ibuprofeno.id, dosis: '1 comprimido',
+    pacienteId: ids.paciente, insumoId: ibuprofeno.id, dosis: '800 mg por vía oral', cantidad: 2,
     intervaloHoras: 8, margenMinutos: 30, primeraDosis: new Date().toISOString(),
   });
   assert.equal(receta.status, 201);
+  assert.equal(receta.datos.primeraAdministracion.cantidad, 2);
   ids.indicacion = receta.datos.id;
   ids.administracion = receta.datos.primeraAdministracion.id;
 
@@ -106,14 +114,19 @@ test('el medico receta, enfermeria confirma y Camas descuenta el stock del piso'
   const conf = await api(`/atencion/administraciones/${ids.administracion}/confirmar`, ENFERMERO, 'POST');
   assert.equal(conf.status, 200);
 
-  // 4. Camas descuenta 1 del piso 2 (lo hace al escuchar el evento).
+  // La dosis siguiente hereda las 2 unidades.
+  const { rows: [siguiente] } = await pool.query(
+    "SELECT cantidad FROM administraciones WHERE indicacion_id = $1 AND estado = 'pendiente'", [ids.indicacion]);
+  assert.equal(siguiente.cantidad, 2);
+
+  // 4. Camas descuenta 2 del piso 2 (lo hace al escuchar el evento).
   let stock;
-  for (let i = 0; i < 20 && stock !== ibuprofeno.stock - 1; i++) {
+  for (let i = 0; i < 20 && stock !== ibuprofeno.stock - 2; i++) {
     await esperar(100);
     stock = (await api(`/atencion/pacientes/${ids.paciente}/medicamentos`, MEDICO)).datos
       .medicamentos.find((m) => m.id === ibuprofeno.id).stock;
   }
-  assert.equal(stock, ibuprofeno.stock - 1);
+  assert.equal(stock, ibuprofeno.stock - 2);
 });
 
 test('un paciente sin cama: se puede recetar, pero no hay piso del que descontar', { skip: !activo }, async (t) => {
