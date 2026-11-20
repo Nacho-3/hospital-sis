@@ -17,7 +17,7 @@ const ahoraLocal = () => {
   return d.toISOString().slice(0, 16);
 };
 
-const vacio = () => ({ insumoId: '', dosis: '', intervaloHoras: 8, margenMinutos: 30, primeraDosis: ahoraLocal() });
+const vacio = () => ({ insumoId: '', dosis: '', cantidad: 1, intervaloHoras: 8, margenMinutos: 30, primeraDosis: ahoraLocal() });
 const form = reactive(vacio());
 
 async function cargar() {
@@ -40,6 +40,7 @@ async function recetar() {
       pacienteId: props.pacienteId,
       insumoId: Number(form.insumoId),
       dosis: form.dosis,
+      cantidad: Number(form.cantidad),
       intervaloHoras: Number(form.intervaloHoras),
       margenMinutos: Number(form.margenMinutos),
       primeraDosis: new Date(form.primeraDosis).toISOString(),
@@ -68,8 +69,11 @@ async function recetar() {
           <option v-for="m in medicamentos" :key="m.id" :value="m.id">{{ etiqueta(m) }}</option>
         </select>
       </label>
-      <label class="campo">Dosis
-        <input v-model="form.dosis" maxlength="80" placeholder="Ej.: 1 comprimido" required />
+      <label class="campo">Dosis (indicación)
+        <input v-model="form.dosis" maxlength="80" placeholder="Ej.: 400 mg por vía oral" required />
+      </label>
+      <label class="campo">Unidades por dosis
+        <input v-model="form.cantidad" type="number" min="1" required />
       </label>
       <label class="campo">Cada (horas)
         <input v-model="form.intervaloHoras" type="number" min="1" required />

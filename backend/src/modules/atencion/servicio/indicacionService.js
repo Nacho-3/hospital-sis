@@ -13,11 +13,13 @@ function enteroPositivo(valor, campo) {
   return numero;
 }
 
-async function crear({ pacienteId, medicoId, insumoId, dosis, intervaloHoras, margenMinutos = 30, primeraDosis }) {
+async function crear({ pacienteId, medicoId, insumoId, dosis, cantidad = 1, intervaloHoras, margenMinutos = 30, primeraDosis }) {
   const paciente = enteroPositivo(pacienteId, 'pacienteId');
   const medico = enteroPositivo(medicoId, 'medicoId');
   const insumo = enteroPositivo(insumoId, 'insumoId');
   const intervalo = enteroPositivo(intervaloHoras, 'intervaloHoras');
+  // Unidades del insumo por dosis: es lo que Camas descuenta del stock al confirmar.
+  const unidades = enteroPositivo(cantidad, 'cantidad');
   if (typeof dosis !== 'string' || !dosis.trim() || dosis.trim().length > 80) {
     throw new ErrorNegocio('La dosis es obligatoria y admite hasta 80 caracteres', 'DATO_INVALIDO', 400);
   }
@@ -42,6 +44,7 @@ async function crear({ pacienteId, medicoId, insumoId, dosis, intervaloHoras, ma
     const primeraAdministracion = await admRepo.insertar(db, {
       indicacionId: indicacion.id,
       programadaPara: fechaPrimeraDosis,
+      cantidad: unidades,
     });
     return { ...indicacion, primeraAdministracion };
   });
